@@ -43,4 +43,4 @@ distclean: clean
 
 
 tarball: clean distclean
-	tar --exclude=".*" -cvjf piranha-1.0a.tar.bz2 src/ Makefile README.TXT gpl.txt 
+	tar --exclude=".*" -cvjf piranha-1.0.0a.tar.bz2 src/ Makefile README.TXT gpl.txt 
