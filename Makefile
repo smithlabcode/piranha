@@ -36,6 +36,7 @@ developmentDocs:
 .PHONY: developmentDocs 
 
 distclean: clean
+	@rm -rf *.bz2
 	@rm -rf ./bin
 	@rm -rf ./developmentDocs
 	@make -C src OPT=1 distclean
@@ -43,4 +44,4 @@ distclean: clean
 
 
 tarball: clean distclean
-	tar --exclude=".*" -cvjf piranha-1.0a.tar.bz2 src/ Makefile README.TXT gpl.txt 
+	DIR=$${PWD##*/}; echo $${DIR}; cd ..; tar --exclude=".*" -cvjf $${DIR}/$${DIR}.tar.bz2 $${DIR}
