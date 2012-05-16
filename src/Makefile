@@ -45,6 +45,7 @@ clean:
 	done;
 	@make -C common SMITHLAB_CPP=$(SMITHLAB_CPP) clean;
 	@make -C test SMITHLAB_CPP=$(SMITHLAB_CPP) clean;
+	@make -C $(SMITHLAB_CPP) SMITHLAB_CPP=$(SMITHLAB_CPP) clean;
 
 distclean:
 	@for i in $(app_subdirs); do \
