@@ -1,6 +1,6 @@
-/****
+/**
   \file ReadBinner.cpp
-  \brief Defines the ReadBinner class, which takes provides functionality
+  \brief Defines the ReadBinner class, which provides functionality
          for taking collections of sequencing reads and collecting them into
          bins
 
@@ -53,7 +53,8 @@ ReadBinner::binReads(const vector<GenomicRegion> &reads,
                            vector<GenomicRegion> &bins) const {
   if (!check_sorted(reads)) {
     stringstream ss;
-    ss << "binning reads failed. Reason: reads were not sorted in order";
+    ss << "binning reads failed. Reason: reads were not sorted in order of "
+       << "chromosome and then end co-ordinate";
     throw SMITHLABException(ss.str());
   }
 

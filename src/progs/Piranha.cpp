@@ -559,7 +559,6 @@ main(int argc, const char* argv[]) {
     bool FITONLY = false;
     bool NO_NORMALISE_COVARS = false;
 
-    bool ignoreCovariates=false;
     size_t numComponents = 1;
     string distType = "DEFAULT";
     string fittingMethodStr = defaultFittingMethod.toString();
@@ -583,11 +582,13 @@ main(int argc, const char* argv[]) {
     opt_parse.add_opt("dist", 'd', "Distribution type. Currently supports "
                                    "Poisson, NegativeBinomial, "
                                    "ZeroTruncatedPoisson, "
-                                   "ZeroTruncatedNegativeBinomial, "
+                                   "ZeroTruncatedNegativeBinomial "
+                                     "(default with no covariates), "
                                    "PoissonRegression, "
                                    "NegativeBinomialRegression, "
                                    "ZeroTruncatedPoissonRegression, "
-                                   "ZeroTruncatedNegativeBinomialRegression",
+                                   "ZeroTruncatedNegativeBinomialRegression "
+                                     "(default with covariates)",
                       false, distType);
     opt_parse.add_opt("fitMethod", 't', "component fitting method",
                       false, fittingMethodStr);
@@ -597,9 +598,6 @@ main(int argc, const char* argv[]) {
                       "to stderr if set", false, VERBOSE);
     opt_parse.add_opt("no_normalisation", 'n', "don't normalise covariates",
                       false, NO_NORMALISE_COVARS);
-    opt_parse.add_opt("ignoreCovars", 'i', "don't use covariates in fitting "
-                      "or predicting, but output them with predictions",
-                      false, ignoreCovariates);
 
     vector<string> leftover_args;
     opt_parse.parse(argc, argv, leftover_args);
@@ -617,7 +615,7 @@ main(int argc, const char* argv[]) {
       return EXIT_SUCCESS;
     }
     if (leftover_args.empty()) {
-      // TODO handle input via stdin
+      // TODO handle input via stdin?
       cerr << "must provide input files" << endl;
       return EXIT_FAILURE;
     }
@@ -646,9 +644,27 @@ main(int argc, const char* argv[]) {
       loadCovariates(cfnames, sites, covariates, !NO_NORMALISE_COVARS);
     }
 
+    // tell the user what options were set and what files we found
     if (VERBOSE) {
-      cerr << "loaded " << responses.size() <<  " elements"   << endl;
-      cerr << "loaded " << covariates.size() << " covariates" << endl;
+      cerr << "loaded " << responses.size() <<  " elements from "
+           << leftover_args.front() << endl;
+      if (leftover_args.size() > 1) {
+        vector<string> cfnames =
+            vector<string>(leftover_args.begin() + 1, leftover_args.end());
+        cerr << "loaded " << covariates.size() << " covariates from ";
+        for (size_t i=0; i<cfnames.size(); i++) cerr << cfnames[i] << "\t";
+        cerr << endl;
+      } else cerr << "no covariates found" << endl;
+      if (!outfn.empty()) cerr << "writing output to " << outfn << endl;
+      else cerr << "writing output to stdout" << endl;
+      if (binSize == ALREADY_BINNED) cerr << "input is already binned" << endl;
+      else cerr << "binning input into bins of size " << binSize << endl;
+      if (FITONLY) cerr << "Not scoring input regions" << endl;
+      else cerr << "scoring input regions" << endl;
+      if (modelfn != "") cerr << "loading model from " << modelfn << endl;
+      cerr << "model type? " << distType << endl;
+      if (NO_NORMALISE_COVARS) cerr << "normalise covariates? no" << endl;
+      else cerr << "normalise covariates? yes" << endl;
     }
 
     // if we're fitting only a single component, rather than a mixture..
@@ -675,7 +691,6 @@ main(int argc, const char* argv[]) {
 		       FITONLY, FittingMethod(fittingMethodStr),
 		       ignoreCovariates, !NO_NORMALISE_COVARS, VERBOSE);*/
     }
-    
   } catch (const SMITHLABException &e) {
     cerr << "ERROR:\t" << e.what() << endl;
     return EXIT_FAILURE;

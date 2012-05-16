@@ -65,7 +65,7 @@ $(BAMTOOLS_LIB) :
 
 Piranha: $(addprefix $(SMITHLAB_CPP)/, GenomicRegion.o smithlab_os.o \
 	smithlab_utils.o OptionParser.o MappedRead.o)
-Piranha : $(addprefix $(COMMON_DIR), Progress.o \
+Piranha : $(addprefix $(COMMON_DIR), \
 	Gaussian.o NegativeBinomial.o \
 	PoissonRegression.o Poisson.o SimpleXML.o \
 	NegativeBinomialRegression.o MixtureModel.o \

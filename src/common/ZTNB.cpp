@@ -405,16 +405,15 @@ ZTNB::trunc_log_L(const vector<size_t> &vals_hist) const {
  */
 double
 ZTNB::trunc_pval(const size_t val) const {
-  cerr << "p-value for " << val << endl;
   double pval = 1.0;
   for(size_t i = 1; i < val; i++) {
     pval -= exp(trunc_log_pdf(i));
+    if (i == 20000) break;
     if (pval <= 0) {
       pval = 0;
       break;
     }
   }
-  cerr << "done" << endl;
   return(pval);
 }
 
