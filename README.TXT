@@ -6,7 +6,7 @@
                    | |    | | | | (_| | | | | | | | (_| | 
                    |_|    |_|_|  \__,_|_| |_|_| |_|\__,_|
                    **************************************
-                   *               V1.0.1a              *
+                   *               V1.0.2               *
                    ************************************** 
                                         
 
@@ -51,19 +51,26 @@ Table of contents
 **********************************
 1. Building and Installing Piranha
 *******************************************************************************
-This software package has been designed to operate in a UNIX-like environment.
-It has been tested on MacOS X Snow Leopard and Linux. 
+Piranha has been designed to operate in a UNIX-like environment.
+It has been tested on MacOS X Snow Leopard, USCLinux, Ubuntu and SUSE. 
 
-Step 0 -- dependencies 
-----------------------
-  Piranha requires a functioning installation of the GNU Scientific Library 
-  (GSL). If you don't already have this installed, you will need to download 
-  and install it from http://www.gnu.org/software/gsl/
+Step 0 -- dependencies and requirements
+---------------------------------------
+  64-bit machine and GCC version ³ 4.1 (to support TR1). 
+  
+  Piranha additionally requires a functioning installation of the GNU 
+  Scientific Library (GSL). If you don't already have this installed, you will 
+  need to download and install it from http://www.gnu.org/software/gsl/
   This distribution has been tested with GSL version 1.14
   
-  Piranha also requires cmake. If you don't already have this, you will
-  need to download it from http://www.cmake.org/ and install it. 
-  This distribution has been tested with cmake version 2.8.8 
+  Piranha uses BAMTools to provide support for BAM files. It requires cmake. 
+  If you don't already have this, you will need to download it from 
+  http://www.cmake.org/ and install it. This distribution has been tested 
+  with cmake version 2.8.8. BAMTools also requires the development headers 
+  for zlib. You probably have them, but if you encounter problems, they can be
+  found here: http://zlib.net/
+  
+  The regression tests (which you don't need to run) require Python.   
 
 Step 1 -- building
 ------------------
@@ -139,8 +146,6 @@ Options:
                          input data 
   -v, -VERBOSE           output additional messages about run to stderr if set 
   -n, -no_normalisation  don't normalise covariates 
-  -i, -ignoreCovars      don't use covariates in fitting or predicting, but 
-                         output them with predictions 
 
 Help options:
   -?, -help              print this help message 
@@ -218,7 +223,7 @@ though, please check the following list:
   1.) Are you using the latest version? The bug you found may already have 
       been fixed.
   2.) Check that your input is in the correct format and you have selected
-      the correct options
+      the correct options.
   3.) Please reduce your input to the smallest possible size that still 
       produces the bug; we will need your input data to reproduce the 
       problem.
