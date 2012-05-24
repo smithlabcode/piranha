@@ -46,3 +46,7 @@ clean:
 	@make -C common SMITHLAB_CPP=$(SMITHLAB_CPP) clean;
 	@make -C test SMITHLAB_CPP=$(SMITHLAB_CPP) clean;
 	@make -C $(SMITHLAB_CPP) SMITHLAB_CPP=$(SMITHLAB_CPP) clean;
+	@rm -rf bin;
+	
+distclean:
+	
