@@ -5,6 +5,7 @@
 --> 
 
 <regressionTests>
+  <!--
   <test>
     <name> Binning test BAM ztnbr </name>
 	<command>
@@ -15,6 +16,7 @@
 	</command>
 	<expected> regressionTestOutputs/ztnbrBinningTestModelOutput.expected.stdout </expected>
   </test>
+  -->
 
   <test>
   	<name> Binning test BED ztnbr </name> 
@@ -47,6 +49,7 @@
 	<expected> regressionTestOutputs/ztnbBinningTestModelOutput.expected.stdout </expected>
   </test>
 
+  <!--
   <test>
     <name> Binning test BAM </name>
 	<command>
@@ -55,6 +58,7 @@
 	</command> 
     <expected> regressionTestOutputs/ztnbBinningTestModelOutput.expected.stdout </expected>
   </test>
+  -->
 
   <test>
     <name> Binning test BED pre-binned </name>

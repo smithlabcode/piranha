@@ -35,6 +35,7 @@
 #include <string>
 
 // From piranha common
+#include "config.hpp"
 #include "NegativeBinomialRegression.hpp"
 #include "TruncatedPoissonRegression.hpp"
 #include "PoissonRegression.hpp"
@@ -52,9 +53,11 @@
 #include "OptionParser.hpp"
 #include "GenomicRegion.hpp"
 
-// From BAMTools
+// From BAMTools --  if we have BAM support
+#ifdef BAM_SUPPORT
 #include "api/BamReader.h"
 #include "api/BamAlignment.h"
+#endif
 
 using std::vector;
 using std::string;
@@ -67,15 +70,24 @@ using std::ostream;
 using std::stringstream;
 using std::tr1::unordered_map;
 using std::transform;
+
+// if we have BAM support
+#ifdef BAM_SUPPORT
 using BamTools::BamAlignment;
 using BamTools::SamHeader;
 using BamTools::RefVector;
 using BamTools::BamReader;
 using BamTools::RefData;
+#endif
 
+#ifdef BAM_SUPPORT
 enum inputType{BED, BAM};
-const size_t ALREADY_BINNED = 0;
+#endif
+#ifdef NO_BAM_SUPPORT
+enum inputType{BED};
+#endif
 
+const size_t ALREADY_BINNED = 0;
 
 /**
  * \brief returns true if the two GenomicRegions cover exactly the same genomic
@@ -91,147 +103,7 @@ sameRegion(const GenomicRegion &r1, const GenomicRegion &r2) {
   return true;
 }
 
-/*****
- * \brief Returns true if the two vectors contain the same regions, in the
- *        same order. Ignores scores and strands, just checks chrom, start, end
- */
-/*static bool
-sameRegions(const vector<GenomicRegion>& r1, const vector<GenomicRegion>& r2) {
-  if (r1.size() != r2.size()) return false;
-  for (size_t i = 0; i < r1.size(); i++) {
-    if (!sameRegion(r1[i],r2[i])) return false;
-  }
-  return true;
-}*/
-
-/**
- * \brief Fit a mixture to the response variables (and optionally covariates).
- * \param filenames TODO
- * \param ostrm TODO
- * \param modelfn TODO
- * \param type TODO
- * \param numComponents TODO
- * \param FITONLY TODO
- * \param ftmthd TODO
- * \param ignoreCovariates TODO
- * \param normaliseCovariates TODO
- * \param VERBOSE TODO
- * \note: works with mixtures of 1 component
- */
-/*static void
-FindPeaksMixture(const vector<string>& filenames, ostream& ostrm, 
-		 const string &modelfn, const string &type, 
-		 const size_t numComponents, const bool FITONLY, 
-		 FittingMethod ftmthd = FittingMethod("DEFAULT"),
-		 bool ignoreCovariates=false,
-		 bool normaliseCovariates = false, bool VERBOSE=false) {
-  
-  // load the input    
-  const CovariateList cvlist(filenames, 0, 0, VERBOSE);
-  const vector< vector<double> > 
-    covariates(normaliseCovariates ? cvlist.getCovariatesNormalised() :
-	       cvlist.getCovariates());
-  const vector<double> responses(cvlist.getResponses());
-  const vector<GenomicRegion> regions(cvlist.getRegions());
-  
-  // make sure the input makes sense to us..
-  if (covariates.size() != responses.size()) {
-    stringstream ss;
-    ss << "Reading of input failed, the number of response data points did "
-       << "not match the number of covariate data points";
-    throw SMITHLABException(ss.str());
-  }
-  if (regions.size() != responses.size()) {
-    stringstream ss;
-    ss << "Reading of input failed, the number of response data points did "
-       << "not match the number of regions found";
-    throw SMITHLABException(ss.str());
-  }
-  
-  const size_t N = responses.size();
-  const size_t K = numComponents;
-  const size_t P = ignoreCovariates ? 0 : covariates[0].size();
-  
-  if (VERBOSE) {
-    cerr << "loaded with N=" << N << " and K=" << K << " P=" << P << endl;
-  }
-  
-  // load the model, or fit it from the input files?  
-  MixtureModel *mixture = NULL;
-  if (modelfn != "") {
-    mixture = MixtureModel::create(modelfn, type, K, P, ftmthd);
-    cout << "loaded " << mixture->toString() << endl;
-  }
-  else {
-    if (VERBOSE) cerr << "Fitting model" << endl;
-    mixture = MixtureModel::create(type, K, P, ftmthd);
-    mixture->estimateParams(responses, covariates, VERBOSE);
-    if (VERBOSE) cerr << "Done estimating model paramaters" << endl;
-  }
-  
-  // just output the model, or use it to predict membership of input?
-  if (FITONLY) {
-    mixture->save(ostrm);
-    ostrm << endl;
-  }
-  else {
-    vector< vector<double> > probs;
-    for (size_t i=0; i<N; i++) {
-      vector<double> instance;
-      instance.push_back(responses[i]);
-      for (size_t j=0; j<P; j++) 
-        instance.push_back(covariates[i][0]);
-      probs.push_back(mixture->getComponentProbs(instance));
-    }
-    cerr << "finished calculating membership probabilities" << endl;
-    
-    const double compThreshold = 0.99;
-    vector<double> compResSums(K,0);
-    vector<size_t> compCounts(K,0);
-    
-    if (probs.size() != N) {
-      stringstream ss;
-      ss << "Calculating peak probabilities failed. Reason: number of peak "
-         << "probabilities did not match number of peaks";
-      throw SMITHLABException(ss.str());
-    }
-    for (size_t i=0; i<N; i++) {
-      if (probs[i].size() != K) {
-        stringstream ss;
-        ss << "Calculating peak probabilities failed. Reason: number of peak "
-           << "probabilities for peak " << i << "did not match number of "
-           << "mixture components";
-        throw SMITHLABException(ss.str());
-      }
-      for (size_t k=0; k<K; k++) {
-        if (probs[i][k] > compThreshold) {
-          compResSums[k] += responses[i];
-          compCounts[k] += 1;
-        }
-      }
-      
-      ostrm << regions[i].tostring() << "\t";
-      ostrm << responses[i] << "\t";
-      for (size_t j=0; j<covariates[i].size(); j++) {
-        ostrm << covariates[i][j] << "\t";
-      }
-      for (size_t k=0; k<K; k++) ostrm << probs[i][k] << "\t";
-      ostrm << endl;
-    }
-    
-    if (VERBOSE) {
-      for (size_t k=0; k<K; k++) {
-        cerr << mixture->getComponentAsString(k)
-             << "; mean read count in component " << k
-             << " -> " << (compResSums[k]/compCounts[k]) << endl;
-      }
-    }
-  }
-  
-  // cleanup
-  if (mixture != NULL) delete mixture;
-}*/
-
+#ifdef BAM_SUPPORT
 /**
  * \brief convert a BamAlignment object to a GenomicRegion object
  * \param chrom_lookup[in]   map of reference id to chrom name from BAM file
@@ -257,6 +129,7 @@ BamAlignmentToGenomicRegion(const unordered_map<size_t, string> &chrom_lookup,
   const string scr = ba.Qualities;
   r = GenomicRegion(chrom, start, end, name, score, strand);
 }
+#endif
 
 /**
  * \brief guess whether this is a BAM file or a BED file -- doesn't check
@@ -274,9 +147,14 @@ guessFileType(const string &filename, const bool verbose = false) {
   else if (verbose)
       cerr << "guessed that " << filename << " is BED format" << endl;
 
+// only guess BAM format if we have compiled with BAM support
+#ifdef BAM_SUPPORT
   if (ext == "BAM") return BAM;
+#endif
+
   return BED;
 }
+
 
 
 /**
@@ -298,6 +176,7 @@ loadResponses(const string &filename, vector<double> &response,
   response.clear();
   inputType type = guessFileType(filename, verbose);
 
+#ifdef BAM_SUPPORT
   // Cry on BAM input with already binned reads -- can't fit the read counts
   // into the map quality attribute in the SAM format, so we can't do this.
   if ((type == BAM) && (binSize == ALREADY_BINNED)) {
@@ -306,11 +185,14 @@ loadResponses(const string &filename, vector<double> &response,
        << "reads. Did you mean to use the -b option?";
     throw SMITHLABException(ss.str());
   }
+#endif
 
   // first we load all the data into the vector of regions...
   if (type == BED) {
     ReadBEDFile(filename, regions);
-  } else if (type == BAM) {
+  }
+#ifdef BAM_SUPPORT
+  else if (type == BAM) {
     BamReader reader;
     reader.Open(filename);
 
@@ -329,6 +211,7 @@ loadResponses(const string &filename, vector<double> &response,
       regions.push_back(r);
     }
   }
+#endif
 
   // now, do we need to bin the reads?
   if (binSize != ALREADY_BINNED) {
