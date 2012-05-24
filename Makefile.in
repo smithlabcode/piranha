@@ -29,6 +29,9 @@ test:
 
 clean:
 	@make -C src clean
+	@rm -rf *.bz2
+	@rm -rf ./bin
+	@rm -rf ./developmentDocs
 .PHONY: clean
 
 developmentDocs:
@@ -36,10 +39,8 @@ developmentDocs:
 .PHONY: developmentDocs 
 
 distclean: clean
-	@rm -rf *.bz2
-	@rm -rf ./bin
-	@rm -rf ./developmentDocs
 	@make -C src OPT=1 distclean
+	@rm -rf Makefile autom4te.cache config.log config.status
 .PHONY: distclean
 
 
