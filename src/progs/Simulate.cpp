@@ -37,6 +37,7 @@
 #include <cassert>
 
 // From piranha common
+#include "config.hpp"
 #include "NegativeBinomialRegression.hpp"
 #include "TruncatedPoissonRegression.hpp"
 #include "PoissonRegression.hpp"
@@ -53,10 +54,12 @@
 #include "RNG.hpp"
 
 // From BAMTools
+#ifdef BAM_SUPPORT
 #include "api/BamWriter.h"
 #include "api/SamHeader.h"
 #include "api/BamAlignment.h"
 #include "api/BamAux.h"
+#endif
 
 using std::vector;
 using std::string;
@@ -70,10 +73,12 @@ using std::stringstream;
 using std::accumulate;
 using std::tr1::unordered_map;
 
+#ifdef BAM_SUPPORT
 using BamTools::BamAlignment;
 using BamTools::SamHeader;
 using BamTools::RefVector;
 using BamTools::BamWriter;
+#endif
 
 template<typename T, size_t N>
 T * end(T (&ra)[N]) {
@@ -369,7 +374,7 @@ simulateRegions(const size_t num, size_t binSize,
   return res;
 }
 
-
+#ifdef BAM_SUPPORT
 /**
  * \brief TODO
  */
@@ -393,8 +398,9 @@ GenomicRegionToBamAlignment(const unordered_map<string, size_t> &chrom_lookup,
   ba.SetIsReverseStrand(r.neg_strand());     // sets value of "alignment
                                              // mapped to reverse strand" flag
 }
+#endif
 
-
+#ifdef BAM_SUPPORT
 /**
  * \brief TODO
  *
@@ -442,7 +448,9 @@ MakeBamHeader(const vector<GenomicRegion> regions, RefVector &refs,
     refs.push_back(chrom);
   }
 }
+#endif
 
+#ifdef BAM_SUPPORT
 /**
  * \brief TODO
  */
@@ -469,6 +477,7 @@ writeBAM(const vector<GenomicRegion>& regions, const string& outfn) {
   }
   bw.Close();
 }
+#endif
 
 static void
 writeBED(const vector<GenomicRegion>& regions, const string& outfn) {
@@ -513,7 +522,16 @@ writeResponseFile(const string& outfn, vector<GenomicRegion> regions,
     }
     cerr << "writing output file" << endl;
     if (formatString == "BED_UNBINNED") writeBED(outputRegions, outfn);
-    else writeBAM(outputRegions, outfn);
+#ifdef BAM_SUPPORT
+    else if (formatString == "BAM_UNBINNED") {
+      writeBAM(outputRegions, outfn);
+    }
+#endif
+    else {
+      stringstream ss;
+      ss << "BAM format not supported. Recompile with BAM support";
+      throw SMITHLABException(ss.str());
+    }
   } else if (formatString == "BED_BINNED") {
     writeBED(regions, outfn);
   } else {
@@ -574,9 +592,12 @@ main(int argc, const char* argv[]) {
     opt_parse.add_opt("covFilename", 'c', "filename(s) to write covariates "
                       "to (if you have more than 1, wrap in quotes)", false,
                       covariateFilenames);
-    opt_parse.add_opt("format", 'f', "format for the counts file. Options are "
-                      "BED_BINNED (default), BED_UNBINNED, BAM_UNBINNED",
-                      false, formatString);
+    string allowedFormats = "BED_BINNED (default), BED_UNBINNED";
+#ifdef BAM_SUPPORT
+    allowedFormats += ", BAM_UNBINNED";
+#endif
+    opt_parse.add_opt("format", 'f', "format for the counts file. Options "
+                      "are " + allowedFormats, false, formatString);
 
     vector<string> leftover_args;
     opt_parse.parse(argc, argv, leftover_args);

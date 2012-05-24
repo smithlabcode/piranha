@@ -6,7 +6,7 @@
                    | |    | | | | (_| | | | | | | | (_| | 
                    |_|    |_|_|  \__,_|_| |_|_| |_|\__,_|
                    **************************************
-                   *               V1.0.2               *
+                   *               V1.1.0               *
                    ************************************** 
                                         
 
@@ -63,23 +63,49 @@ Step 0 -- dependencies and requirements
   need to download and install it from http://www.gnu.org/software/gsl/
   This distribution has been tested with GSL version 1.14
   
-  Piranha uses BAMTools to provide support for BAM files. It requires cmake. 
-  If you don't already have this, you will need to download it from 
-  http://www.cmake.org/ and install it. This distribution has been tested 
-  with cmake version 2.8.8. BAMTools also requires the development headers 
-  for zlib. You probably have them, but if you encounter problems, they can be
-  found here: http://zlib.net/
+  [OPTIONAL] Tests
+    The regression tests (which you don't need to run, but can to test that 
+    Piranha was built correctly) require Python. You can download Python 
+    from http://www.python.org/
+    This release has been tested with Python 2.6.1 
   
-  The regression tests (which you don't need to run) require Python.   
+  [OPTIONAL] BAM support
+    If you want BAM support, you must download and build BAMTools.
+    If Piranha cannot find the BAMTools development headers and library,
+    it will be compiled without support for BAM. See below for details on
+    how to specify the location of BAMTools during the build process. 
+    BAMTools is available from https://github.com/pezmaster31/bamtools
+    This release has been tested with BAMTools version 2.1.1   
 
-Step 1 -- building
+Step 1 -- configuring
+---------------------
+  First configure the installation. To do this, where '>' is your prompt and 
+  the CWD is the root of the distribution, type:
+  
+  > ./configure 
+  
+  [OPTIONAL] BAM support
+    configure will warn you if BAM support is not available. If you don't want 
+    BAM support, this is fine. If you do want it however, and the configure 
+    script did not find BAMTools, you will have to specify where the BAMTools 
+    development headers and libraries are located. You can do that as follows
+  
+    > ./configure --with-bam_tools_headers="/some/path/BAMTools/include/" \
+      --with-bam_tools_library="/some/path/BAMTools/lib/"
+  
+    the command is split into two lines here for aesthetic reasons, but it 
+    need not be so. Be aware that if you subsequently move the BAMTools library, 
+    Piranha will no longer work.
+
+Step 2 -- building
 ------------------
+  
   To build the binaries, type the following, where '>' is your prompt and the
   CWD is the root of the distribution  
   
   > make all 
   
-Step 2 -- installing
+Step 3 -- installing
 --------------------
   To install the binaries, type the following, where '>' is your prompt and the
   CWD is the root of the distribution
@@ -92,11 +118,11 @@ Step 2 -- installing
   specify their full paths, or you can copy the binaries to another directory
   of your choice in your PATH.
   
-Step 3 -- testing (optional)
+Step 4 -- testing [optional]
 ----------------------------
   You can verify that Piranha was built correctly by running the included
   unit and regression tests. At the command prompt (assuming your prompt is 
-  '>') type the following
+  '>') type the following:
   
   > make test 
   
@@ -156,6 +182,9 @@ Help options:
 **************************************
 4. Input and output formats of Piranha
 *******************************************************************************
+   NOTE: BAM support is only available if Piranha was linked with BAMTools
+   =======================================================================
+ 
 Piranha takes three possible inputs:
   1.) The response file   (BED or BAM format) [required]
   2.) The covariate files (BED format)        [optional]      

@@ -28,9 +28,9 @@ CFLAGS = -Wall -fPIC -fmessage-length=50
 OPTFLAGS = -O3
 DEBUGFLAGS = -g 
 COMMON_DIR = ../common/
-LIBS = -lgsl -lgslcblas -L/Users/puren/BAMTools/lib/ -lbamtools
+LIBS = -lgsl -lgslcblas @bamlibdir@ @bamlib@
 
-INCLUDEDIRS = $(SMITHLAB_CPP) $(COMMON_DIR) /Users/puren/BAMTools/include/
+INCLUDEDIRS = $(SMITHLAB_CPP) $(COMMON_DIR) @bamhead@
 INCLUDEARGS = $(addprefix -I,$(INCLUDEDIRS))
 
 ifeq "$(shell uname)" "Darwin"
