@@ -80,6 +80,7 @@ clean:
 .PHONY: clean
 
 distclean : clean
+	@rm Makefile
 .PHONY : distclean
 	
 test:

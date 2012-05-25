@@ -49,3 +49,8 @@ all: $(OBJECTS)
 clean: 
 	@-rm -f *.o *~
 .PHONY: clean
+
+distclean : clean
+	@rm config.hpp
+	@rm Makefile
+.PHONY : distclean
