@@ -77,8 +77,11 @@ install: all
 
 clean:
 	@-rm -f $(PROGS) *.o *.so *.a *~
+.PHONY: clean
+
+distclean : clean
+.PHONY : distclean
 	
 test:
 	make -C ../test SMITHLAB_CPP=$(SMITHLAB_CPP) test; \
 
-.PHONY: clean
