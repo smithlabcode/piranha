@@ -32,14 +32,10 @@ else
   AC_MSG_NOTICE([no BAMTools library directory specified])
 fi
 
-# check for gsl
-AC_CHECK_LIB([m],[cos])
-AC_CHECK_LIB([gslcblas],[cblas_dgemm])
-AC_CHECK_LIB([gsl],[gsl_blas_dgemm])
-
 # check for BAMTools
 SAVED_LDFLAGS=$LDFLAGS
 SAVED_CXXFLAGS=$CXXFLAGS
+CXXFLAGS="$CXXFLAGS -Wl,--no-as-needed"
 if test "$BAM_LIBRARIES_DIR" != ""
 then
   LDFLAGS="$LDFLAGS -L$BAM_LIBRARIES_DIR -lbamtools"
@@ -55,6 +51,11 @@ AC_LINK_IFELSE(
   [])
 LDFLAGS=$SAVED_LDFLAGS
 CXXFLAGS=$SAVED_CXXFLAGS
+
+# check for gsl
+AC_CHECK_LIB([m],[cos])
+AC_CHECK_LIB([gslcblas],[cblas_dgemm])
+AC_CHECK_LIB([gsl],[gsl_blas_dgemm])
 
 if test "$ac_cv_lib_gsl_gsl_blas_dgemm" == no
 then
