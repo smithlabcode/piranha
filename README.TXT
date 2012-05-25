@@ -94,8 +94,8 @@ Step 1 -- configuring
       --with-bam_tools_library="/some/path/BAMTools/lib/"
   
     the command is split into two lines here for aesthetic reasons, but it 
-    need not be so. Be aware that if you subsequently move the BAMTools library, 
-    Piranha will no longer work.
+    need not be so. Note: These paths must be absolute. Be aware that if you 
+    subsequently move the BAMTools library, Piranha will no longer work.
 
 Step 2 -- building
 ------------------

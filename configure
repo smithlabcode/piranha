@@ -2314,6 +2314,17 @@ else
 echo "$as_me: no BAMTools library directory specified" >&6;}
 fi
 
+# convert the directories given into absolute paths; at least one linux
+# distro we tested on chokes on relative paths when linking.
+if test "$BAM_LIBRARIES_DIR" != ""
+then
+  BAM_LIBRARIES_DIR=`cd $BAM_LIBRARIES_DIR; pwd`
+fi
+if test "$BAM_HEADERS_DIR" != ""
+then
+  BAM_HEADERS_DIR=`cd $BAM_HEADERS_DIR; pwd`
+fi
+
 # check for BAMTools but force 'as-needed' linking to be off
 # this works on Ubuntu, but not on MacOS
 SAVED_LDFLAGS=$LDFLAGS
@@ -2677,9 +2688,12 @@ else
   then
     rpathflags=-Wl,-rpath,`cd $BAM_LIBRARIES_DIR; pwd`
 
-  fi
-  bamlibdir=-L$BAM_LIBRARIES_DIR
+    bamlibdir=-L$BAM_LIBRARIES_DIR
 
+  fi
+  # this is ok, because we don't add the -I until the makefile, where
+  # it's added to a bunch of things, so this can be empty. Should make -L
+  # and -l work like this too...
   bamhead=$BAM_HEADERS_DIR
 
 fi
