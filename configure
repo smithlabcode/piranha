@@ -2671,8 +2671,13 @@ else
 
   bamlib=-lbamtools
 
-  rpathflags=-Wl,-rpath,`cd $BAM_LIBRARIES_DIR; pwd`
+  # only if the user told us where the BAM library was do we add it to
+  # the places where the executable should look for libraries.
+  if test "$BAM_LIBRARIES_DIR" != ""
+  then
+    rpathflags=-Wl,-rpath,`cd $BAM_LIBRARIES_DIR; pwd`
 
+  fi
   bamlibdir=-L$BAM_LIBRARIES_DIR
 
   bamhead=$BAM_HEADERS_DIR

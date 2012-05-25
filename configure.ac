@@ -94,8 +94,16 @@ else
   echo "checking for BAMTools... yes"
   AC_SUBST(bamsupport, BAM_SUPPORT)
   AC_SUBST(bamlib, -lbamtools)
-  AC_SUBST(rpathflags, [-Wl,-rpath,`cd $BAM_LIBRARIES_DIR; pwd`])
-  AC_SUBST(bamlibdir, -L$BAM_LIBRARIES_DIR)
+  # only if the user told us where the BAM library was do we add it to 
+  # the places where the executable should look for libraries.
+  if test "$BAM_LIBRARIES_DIR" != ""
+  then
+    AC_SUBST(rpathflags, [-Wl,-rpath,`cd $BAM_LIBRARIES_DIR; pwd`])
+    AC_SUBST(bamlibdir, -L$BAM_LIBRARIES_DIR)
+  fi
+  # this is ok, because we don't add the -I until the makefile, where 
+  # it's added to a bunch of things, so this can be empty. Should make -L
+  # and -l work like this too... 
   AC_SUBST(bamhead, $BAM_HEADERS_DIR)
 fi
 
