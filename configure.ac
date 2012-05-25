@@ -32,10 +32,31 @@ else
   AC_MSG_NOTICE([no BAMTools library directory specified])
 fi
 
-# check for BAMTools
+# check for BAMTools but force 'as-needed' linking to be off
+# this works on Ubuntu, but not on MacOS
 SAVED_LDFLAGS=$LDFLAGS
 SAVED_CXXFLAGS=$CXXFLAGS
 CXXFLAGS="$CXXFLAGS -Wl,--no-as-needed"
+if test "$BAM_LIBRARIES_DIR" != ""
+then
+  LDFLAGS="$LDFLAGS -L$BAM_LIBRARIES_DIR -lbamtools"
+fi
+if test "$BAM_HEADERS_DIR" != ""
+then
+  CXXFLAGS="$CXXFLAGS -I$BAM_HEADERS_DIR"
+fi
+AC_LINK_IFELSE(
+  [AC_LANG_PROGRAM([#include "api/BamAlignment.h"],
+    [BamTools::BamAlignment dummy])],
+  [ac_cv_lib_bamtools_BamAlignment=yes],
+  [])
+LDFLAGS=$SAVED_LDFLAGS
+CXXFLAGS=$SAVED_CXXFLAGS
+
+# check for BAM tools using the default linking order (this works on 
+# MacOS, but not on Ubuntu)  
+SAVED_LDFLAGS=$LDFLAGS
+SAVED_CXXFLAGS=$CXXFLAGS
 if test "$BAM_LIBRARIES_DIR" != ""
 then
   LDFLAGS="$LDFLAGS -L$BAM_LIBRARIES_DIR -lbamtools"
@@ -73,6 +94,7 @@ else
   echo "checking for BAMTools... yes"
   AC_SUBST(bamsupport, BAM_SUPPORT)
   AC_SUBST(bamlib, -lbamtools)
+  AC_SUBST(rpathflags, [-Wl,-rpath,`cd $BAM_LIBRARIES_DIR; pwd`])
   AC_SUBST(bamlibdir, -L$BAM_LIBRARIES_DIR)
   AC_SUBST(bamhead, $BAM_HEADERS_DIR)
 fi

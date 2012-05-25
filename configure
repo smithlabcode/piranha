@@ -624,6 +624,7 @@ bamsupport
 bamtest_exclude_start_token
 bamtest_exclude_end_token
 bamlib
+rpathflags
 bamlibdir
 bamhead
 LIBOBJS
@@ -2313,7 +2314,8 @@ else
 echo "$as_me: no BAMTools library directory specified" >&6;}
 fi
 
-# check for BAMTools
+# check for BAMTools but force 'as-needed' linking to be off
+# this works on Ubuntu, but not on MacOS
 SAVED_LDFLAGS=$LDFLAGS
 SAVED_CXXFLAGS=$CXXFLAGS
 CXXFLAGS="$CXXFLAGS -Wl,--no-as-needed"
@@ -2326,6 +2328,64 @@ then
   CXXFLAGS="$CXXFLAGS -I$BAM_HEADERS_DIR"
 fi
 
+cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+#include "api/BamAlignment.h"
+int
+main ()
+{
+BamTools::BamAlignment dummy
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (ac_try="$ac_link"
+case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
+esac
+eval "echo \"\$as_me:$LINENO: $ac_try_echo\"") >&5
+  (eval "$ac_link") 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } && {
+	 test -z "$ac_cxx_werror_flag" ||
+	 test ! -s conftest.err
+       } && test -s conftest$ac_exeext &&
+       $as_test_x conftest$ac_exeext; then
+  ac_cv_lib_bamtools_BamAlignment=yes
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+
+fi
+
+rm -f core conftest.err conftest.$ac_objext conftest_ipa8_conftest.oo \
+      conftest$ac_exeext conftest.$ac_ext
+LDFLAGS=$SAVED_LDFLAGS
+CXXFLAGS=$SAVED_CXXFLAGS
+
+# check for BAM tools using the default linking order (this works on
+# MacOS, but not on Ubuntu)
+SAVED_LDFLAGS=$LDFLAGS
+SAVED_CXXFLAGS=$CXXFLAGS
+if test "$BAM_LIBRARIES_DIR" != ""
+then
+  LDFLAGS="$LDFLAGS -L$BAM_LIBRARIES_DIR -lbamtools"
+fi
+if test "$BAM_HEADERS_DIR" != ""
+then
+  CXXFLAGS="$CXXFLAGS -I$BAM_HEADERS_DIR"
+fi
 cat >conftest.$ac_ext <<_ACEOF
 /* confdefs.h.  */
 _ACEOF
@@ -2610,6 +2670,8 @@ else
   bamsupport=BAM_SUPPORT
 
   bamlib=-lbamtools
+
+  rpathflags=-Wl,-rpath,`cd $BAM_LIBRARIES_DIR; pwd`
 
   bamlibdir=-L$BAM_LIBRARIES_DIR
 
@@ -3295,13 +3357,14 @@ bamsupport!$bamsupport$ac_delim
 bamtest_exclude_start_token!$bamtest_exclude_start_token$ac_delim
 bamtest_exclude_end_token!$bamtest_exclude_end_token$ac_delim
 bamlib!$bamlib$ac_delim
+rpathflags!$rpathflags$ac_delim
 bamlibdir!$bamlibdir$ac_delim
 bamhead!$bamhead$ac_delim
 LIBOBJS!$LIBOBJS$ac_delim
 LTLIBOBJS!$LTLIBOBJS$ac_delim
 _ACEOF
 
-  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 52; then
+  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 53; then
     break
   elif $ac_last_try; then
     { { echo "$as_me:$LINENO: error: could not make $CONFIG_STATUS" >&5
@@ -4307,13 +4370,14 @@ bamsupport!$bamsupport$ac_delim
 bamtest_exclude_start_token!$bamtest_exclude_start_token$ac_delim
 bamtest_exclude_end_token!$bamtest_exclude_end_token$ac_delim
 bamlib!$bamlib$ac_delim
+rpathflags!$rpathflags$ac_delim
 bamlibdir!$bamlibdir$ac_delim
 bamhead!$bamhead$ac_delim
 LIBOBJS!$LIBOBJS$ac_delim
 LTLIBOBJS!$LTLIBOBJS$ac_delim
 _ACEOF
 
-  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 52; then
+  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 53; then
     break
   elif $ac_last_try; then
     { { echo "$as_me:$LINENO: error: could not make $CONFIG_STATUS" >&5
@@ -5320,13 +5384,14 @@ bamsupport!$bamsupport$ac_delim
 bamtest_exclude_start_token!$bamtest_exclude_start_token$ac_delim
 bamtest_exclude_end_token!$bamtest_exclude_end_token$ac_delim
 bamlib!$bamlib$ac_delim
+rpathflags!$rpathflags$ac_delim
 bamlibdir!$bamlibdir$ac_delim
 bamhead!$bamhead$ac_delim
 LIBOBJS!$LIBOBJS$ac_delim
 LTLIBOBJS!$LTLIBOBJS$ac_delim
 _ACEOF
 
-  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 52; then
+  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 53; then
     break
   elif $ac_last_try; then
     { { echo "$as_me:$LINENO: error: could not make $CONFIG_STATUS" >&5
@@ -6334,13 +6399,14 @@ bamsupport!$bamsupport$ac_delim
 bamtest_exclude_start_token!$bamtest_exclude_start_token$ac_delim
 bamtest_exclude_end_token!$bamtest_exclude_end_token$ac_delim
 bamlib!$bamlib$ac_delim
+rpathflags!$rpathflags$ac_delim
 bamlibdir!$bamlibdir$ac_delim
 bamhead!$bamhead$ac_delim
 LIBOBJS!$LIBOBJS$ac_delim
 LTLIBOBJS!$LTLIBOBJS$ac_delim
 _ACEOF
 
-  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 52; then
+  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 53; then
     break
   elif $ac_last_try; then
     { { echo "$as_me:$LINENO: error: could not make $CONFIG_STATUS" >&5
@@ -7349,13 +7415,14 @@ bamsupport!$bamsupport$ac_delim
 bamtest_exclude_start_token!$bamtest_exclude_start_token$ac_delim
 bamtest_exclude_end_token!$bamtest_exclude_end_token$ac_delim
 bamlib!$bamlib$ac_delim
+rpathflags!$rpathflags$ac_delim
 bamlibdir!$bamlibdir$ac_delim
 bamhead!$bamhead$ac_delim
 LIBOBJS!$LIBOBJS$ac_delim
 LTLIBOBJS!$LTLIBOBJS$ac_delim
 _ACEOF
 
-  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 52; then
+  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 53; then
     break
   elif $ac_last_try; then
     { { echo "$as_me:$LINENO: error: could not make $CONFIG_STATUS" >&5
@@ -8365,13 +8432,14 @@ bamsupport!$bamsupport$ac_delim
 bamtest_exclude_start_token!$bamtest_exclude_start_token$ac_delim
 bamtest_exclude_end_token!$bamtest_exclude_end_token$ac_delim
 bamlib!$bamlib$ac_delim
+rpathflags!$rpathflags$ac_delim
 bamlibdir!$bamlibdir$ac_delim
 bamhead!$bamhead$ac_delim
 LIBOBJS!$LIBOBJS$ac_delim
 LTLIBOBJS!$LTLIBOBJS$ac_delim
 _ACEOF
 
-  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 52; then
+  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 53; then
     break
   elif $ac_last_try; then
     { { echo "$as_me:$LINENO: error: could not make $CONFIG_STATUS" >&5
@@ -9382,13 +9450,14 @@ bamsupport!$bamsupport$ac_delim
 bamtest_exclude_start_token!$bamtest_exclude_start_token$ac_delim
 bamtest_exclude_end_token!$bamtest_exclude_end_token$ac_delim
 bamlib!$bamlib$ac_delim
+rpathflags!$rpathflags$ac_delim
 bamlibdir!$bamlibdir$ac_delim
 bamhead!$bamhead$ac_delim
 LIBOBJS!$LIBOBJS$ac_delim
 LTLIBOBJS!$LTLIBOBJS$ac_delim
 _ACEOF
 
-  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 52; then
+  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 53; then
     break
   elif $ac_last_try; then
     { { echo "$as_me:$LINENO: error: could not make $CONFIG_STATUS" >&5

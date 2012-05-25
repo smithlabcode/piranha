@@ -54,7 +54,7 @@ all:    $(PROGS)
 	$(CXX) $(CFLAGS) -c -o $@ $< $(INCLUDEARGS)	
 
 %: %.cpp
-	$(CXX) $(CFLAGS) -o $@ $^ $(INCLUDEARGS) $(LIBS)
+	$(CXX) $(CFLAGS) @rpathflags@ -o $@ $^ $(INCLUDEARGS) $(LIBS)
 
 Piranha: $(addprefix $(SMITHLAB_CPP)/, GenomicRegion.o smithlab_os.o \
 	smithlab_utils.o OptionParser.o MappedRead.o)
