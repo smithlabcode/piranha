@@ -116,15 +116,25 @@ else
   echo "checking for linking against gsl matrix... yes"
 fi
 
-if test "$ac_cv_lib_m_cos" != yes -a \
-        "$ac_cv_lib_gsl_gsl_blas_dgemm" != yes -a \
-        "$ac_cv_lib_gslcblas_cblas_dgemm" != yes -a \
-        "$ac_cv_lib_gsl_matrix" ! = yes
+GSLERROR="could not find or link to GSL -- Piranha requires GSL and \
+         cannot be built without it. GSL can be downloaded from \
+         http://www.gnu.org/software/gsl/ -- please ensure GSL is \
+         correctly installed on your system."
+if test "$ac_cv_lib_m_cos" != yes 
 then
-  AC_MSG_ERROR([could not find or link to GSL -- Piranha requires GSL and \
-                cannot be built without it. GSL can be downloaded from \
-                http://www.gnu.org/software/gsl/ -- please ensure GSL is
-                correctly installed on your system.])
+  AC_MSG_ERROR([$GSLERROR])
+fi
+if test "$ac_cv_lib_gsl_gsl_blas_dgemm" != yes
+then
+  AC_MSG_ERROR([$GSLERROR])
+fi 
+if test "$ac_cv_lib_gslcblas_cblas_dgemm" != yes
+then
+  AC_MSG_ERROR([$GSLERROR])
+fi
+if test "$ac_cv_lib_gsl_matrix" != yes
+then
+  AC_MSG_ERROR([$GSLERROR])
 fi
 
 if test "$ac_cv_lib_bamtools_BamAlignment" != yes
