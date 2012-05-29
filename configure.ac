@@ -1,4 +1,4 @@
-AC_INIT(myconfig, version-0.1)
+AC_INIT(Piranha, version-1.1.0)
 
 # Allow the user to specify where the BAMTools headers and libraries are
 # located.
@@ -25,6 +25,9 @@ AC_LANG(C++)
 if test `uname` == "Darwin"
 then
   CXXFLAGS="$CXXFLAGS -arch x86_64"
+  echo "checking whether we're compiling on Darwin/MacOS... yes"
+else
+  echo "checking whether we're compiling on Darwin/MacOS... no"
 fi
 
 # check to see if the user gave us a location for the BAMTools headers
