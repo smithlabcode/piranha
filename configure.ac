@@ -1,12 +1,31 @@
 AC_INIT(myconfig, version-0.1)
 
-AC_PROG_CXX
-AC_LANG(C++)
-
 # Allow the user to specify where the BAMTools headers and libraries are
 # located.
 AC_ARG_WITH(stuff, [  --with-bam_tools_headers            specify the location of BAMTools headers if they're not in a default search path])
 AC_ARG_WITH(stuff, [  --with-bam_tools_library            specify the location of the BAMTools libraries if they're not in a default search path])
+
+# do tilde expansion on the paths given by the user and echo them back
+if test "$with_bam_tools_headers" != ""
+then 
+  with_bam_tools_headers=`echo "$with_bam_tools_headers" | sed "s|~|${HOME}|g"`
+  echo "provided BAMTools headers directory is $with_bam_tools_headers"
+fi 
+if test "$with_bam_tools_library" != ""
+then
+  with_bam_tools_library=`echo "$with_bam_tools_library" | sed "s|~|${HOME}|g"`
+  echo "provided BAMTools library directory is $with_bam_tools_library"
+fi
+
+# set language to cpp
+AC_PROG_CXX
+AC_LANG(C++)
+
+# check for MacOS and append the architecture flag
+if test `uname` == "Darwin"
+then
+  CFLAGS="$CFLAGS -arch x86_64"
+fi
 
 # check to see if the user gave us a location for the BAMTools headers
 BAM_HEADERS_DIR=""
@@ -24,7 +43,7 @@ fi
 BAM_LIBRARIES_DIR=""
 if test "$with_bam_tools_library" == "yes"
 then
-  AC_MSG_NOTICE([AC_MSG_ERROR([You need to provide a directory if you're going to use the --with-bam_tools_library option. For example: with-bam_tools_library=/some/path])])
+  AC_MSG_ERROR([You need to provide a directory if you're going to use the --with-bam_tools_library option. For example: with-bam_tools_library=/some/path])
 elif test "$with_bam_tools_library" != ""
 then
   BAM_LIBRARIES_DIR="$with_bam_tools_library"
@@ -40,6 +59,8 @@ CXXFLAGS="$CXXFLAGS -Wl,--no-as-needed"
 if test "$BAM_LIBRARIES_DIR" != ""
 then
   LDFLAGS="$LDFLAGS -L$BAM_LIBRARIES_DIR -lbamtools"
+else 
+  LDFLAGS="$LDFLAGS -lbamtools"
 fi
 if test "$BAM_HEADERS_DIR" != ""
 then
@@ -60,6 +81,8 @@ SAVED_CXXFLAGS=$CXXFLAGS
 if test "$BAM_LIBRARIES_DIR" != ""
 then
   LDFLAGS="$LDFLAGS -L$BAM_LIBRARIES_DIR -lbamtools"
+else 
+  LDFLAGS="$LDFLAGS -lbamtools"
 fi
 if test "$BAM_HEADERS_DIR" != ""
 then
@@ -78,10 +101,20 @@ AC_CHECK_LIB([m],[cos])
 AC_CHECK_LIB([gslcblas],[cblas_dgemm])
 AC_CHECK_LIB([gsl],[gsl_blas_dgemm])
 
-if test "$ac_cv_lib_gsl_gsl_blas_dgemm" == no
+if test "$ac_cv_lib_m_cos" != yes
 then
-  AC_MSG_ERROR([could not find GSL])
+  AC_MSG_ERROR([could not find GSL -- Piranha requires GSL and cannot be built without it])
 fi
+if test "$ac_cv_lib_gsl_gsl_blas_dgemm" != yes
+then
+  AC_MSG_ERROR([could not find GSL -- Piranha requires GSL and cannot be built without it])
+fi
+if test "$ac_cv_lib_gslcblas_cblas_dgemm" != yes
+then
+  AC_MSG_ERROR([could not find GSL -- Piranha requires GSL and cannot be built without it])
+fi
+
+
 
 if test "$ac_cv_lib_bamtools_BamAlignment" != yes
 then

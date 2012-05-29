@@ -61,7 +61,7 @@ Step 0 -- dependencies and requirements
   Piranha additionally requires a functioning installation of the GNU 
   Scientific Library (GSL). If you don't already have this installed, you will 
   need to download and install it from http://www.gnu.org/software/gsl/
-  This distribution has been tested with GSL version 1.14
+  This release has been tested with GSL version 1.14
   
   [OPTIONAL] Tests
     The regression tests (which you don't need to run, but can to test that 
@@ -94,8 +94,13 @@ Step 1 -- configuring
       --with-bam_tools_library="/some/path/BAMTools/lib/"
   
     the command is split into two lines here for aesthetic reasons, but it 
-    need not be so. Note: These paths must be absolute. Be aware that if you 
-    subsequently move the BAMTools library, Piranha will no longer work.
+    need not be so. There are a few caveats:
+      * If you subsequently move the BAMTools library, Piranha will not work.
+        (this should be obvious really).
+      * The BAMTools installer currently doesn't update the linker info 
+        after installation. That means you might install it, but Piranha will
+        still not find it when running ./configure -- in this case, I suggest
+        manually specifying the location as shown above.
 
 Step 2 -- building
 ------------------

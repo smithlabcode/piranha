@@ -1652,6 +1652,34 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
 
+# Allow the user to specify where the BAMTools headers and libraries are
+# located.
+
+# Check whether --with-stuff was given.
+if test "${with_stuff+set}" = set; then
+  withval=$with_stuff;
+fi
+
+
+# Check whether --with-stuff was given.
+if test "${with_stuff+set}" = set; then
+  withval=$with_stuff;
+fi
+
+
+# do tilde expansion on the paths given by the user and echo them back
+if test "$with_bam_tools_headers" != ""
+then
+  with_bam_tools_headers=`echo "$with_bam_tools_headers" | sed "s|~|${HOME}|g"`
+  echo "provided BAMTools headers directory is $with_bam_tools_headers"
+fi
+if test "$with_bam_tools_library" != ""
+then
+  with_bam_tools_library=`echo "$with_bam_tools_library" | sed "s|~|${HOME}|g"`
+  echo "provided BAMTools library directory is $with_bam_tools_library"
+fi
+
+# set language to cpp
 ac_ext=cpp
 ac_cpp='$CXXCPP $CPPFLAGS'
 ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
@@ -2266,20 +2294,11 @@ ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ex
 ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
 
 
-# Allow the user to specify where the BAMTools headers and libraries are
-# located.
-
-# Check whether --with-stuff was given.
-if test "${with_stuff+set}" = set; then
-  withval=$with_stuff;
+# check for MacOS and append the architecture flag
+if test `uname` == "Darwin"
+then
+  CFLAGS="$CFLAGS -arch x86_64"
 fi
-
-
-# Check whether --with-stuff was given.
-if test "${with_stuff+set}" = set; then
-  withval=$with_stuff;
-fi
-
 
 # check to see if the user gave us a location for the BAMTools headers
 BAM_HEADERS_DIR=""
@@ -2300,29 +2319,15 @@ fi
 BAM_LIBRARIES_DIR=""
 if test "$with_bam_tools_library" == "yes"
 then
-  { echo "$as_me:$LINENO: { { echo "$as_me:$LINENO: error: You need to provide a directory if you're going to use the --with-bam_tools_library option. For example: with-bam_tools_library=/some/path" >&5
+  { { echo "$as_me:$LINENO: error: You need to provide a directory if you're going to use the --with-bam_tools_library option. For example: with-bam_tools_library=/some/path" >&5
 echo "$as_me: error: You need to provide a directory if you're going to use the --with-bam_tools_library option. For example: with-bam_tools_library=/some/path" >&2;}
-   { (exit 1); exit 1; }; }" >&5
-echo "$as_me: { { echo "$as_me:$LINENO: error: You need to provide a directory if you're going to use the --with-bam_tools_library option. For example: with-bam_tools_library=/some/path" >&5
-echo "$as_me: error: You need to provide a directory if you're going to use the --with-bam_tools_library option. For example: with-bam_tools_library=/some/path" >&2;}
-   { (exit 1); exit 1; }; }" >&6;}
+   { (exit 1); exit 1; }; }
 elif test "$with_bam_tools_library" != ""
 then
   BAM_LIBRARIES_DIR="$with_bam_tools_library"
 else
   { echo "$as_me:$LINENO: no BAMTools library directory specified" >&5
 echo "$as_me: no BAMTools library directory specified" >&6;}
-fi
-
-# convert the directories given into absolute paths; at least one linux
-# distro we tested on chokes on relative paths when linking.
-if test "$BAM_LIBRARIES_DIR" != ""
-then
-  BAM_LIBRARIES_DIR=`cd $BAM_LIBRARIES_DIR; pwd`
-fi
-if test "$BAM_HEADERS_DIR" != ""
-then
-  BAM_HEADERS_DIR=`cd $BAM_HEADERS_DIR; pwd`
 fi
 
 # check for BAMTools but force 'as-needed' linking to be off
@@ -2333,6 +2338,8 @@ CXXFLAGS="$CXXFLAGS -Wl,--no-as-needed"
 if test "$BAM_LIBRARIES_DIR" != ""
 then
   LDFLAGS="$LDFLAGS -L$BAM_LIBRARIES_DIR -lbamtools"
+else
+  LDFLAGS="$LDFLAGS -lbamtools"
 fi
 if test "$BAM_HEADERS_DIR" != ""
 then
@@ -2392,6 +2399,8 @@ SAVED_CXXFLAGS=$CXXFLAGS
 if test "$BAM_LIBRARIES_DIR" != ""
 then
   LDFLAGS="$LDFLAGS -L$BAM_LIBRARIES_DIR -lbamtools"
+else
+  LDFLAGS="$LDFLAGS -lbamtools"
 fi
 if test "$BAM_HEADERS_DIR" != ""
 then
@@ -2658,12 +2667,26 @@ _ACEOF
 fi
 
 
-if test "$ac_cv_lib_gsl_gsl_blas_dgemm" == no
+if test "$ac_cv_lib_m_cos" != yes
 then
-  { { echo "$as_me:$LINENO: error: could not find GSL" >&5
-echo "$as_me: error: could not find GSL" >&2;}
+  { { echo "$as_me:$LINENO: error: could not find GSL -- Piranha requires GSL and cannot be built without it" >&5
+echo "$as_me: error: could not find GSL -- Piranha requires GSL and cannot be built without it" >&2;}
    { (exit 1); exit 1; }; }
 fi
+if test "$ac_cv_lib_gsl_gsl_blas_dgemm" != yes
+then
+  { { echo "$as_me:$LINENO: error: could not find GSL -- Piranha requires GSL and cannot be built without it" >&5
+echo "$as_me: error: could not find GSL -- Piranha requires GSL and cannot be built without it" >&2;}
+   { (exit 1); exit 1; }; }
+fi
+if test "$ac_cv_lib_gslcblas_cblas_dgemm" != yes
+then
+  { { echo "$as_me:$LINENO: error: could not find GSL -- Piranha requires GSL and cannot be built without it" >&5
+echo "$as_me: error: could not find GSL -- Piranha requires GSL and cannot be built without it" >&2;}
+   { (exit 1); exit 1; }; }
+fi
+
+
 
 if test "$ac_cv_lib_bamtools_BamAlignment" != yes
 then
