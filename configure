@@ -2666,6 +2666,59 @@ _ACEOF
 
 fi
 
+ac_cv_lib_gsl_matrix=no
+SAVED_LDFLAGS=$LDFLAGS
+LDFLAGS="$LDFLAGS -lgsl"
+cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+#include "gsl/gsl_matrix_double.h"
+int
+main ()
+{
+gsl_matrix_calloc(5,5)
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (ac_try="$ac_link"
+case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
+esac
+eval "echo \"\$as_me:$LINENO: $ac_try_echo\"") >&5
+  (eval "$ac_link") 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } && {
+	 test -z "$ac_cxx_werror_flag" ||
+	 test ! -s conftest.err
+       } && test -s conftest$ac_exeext &&
+       $as_test_x conftest$ac_exeext; then
+  ac_cv_lib_gsl_matrix=yes
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+
+fi
+
+rm -f core conftest.err conftest.$ac_objext conftest_ipa8_conftest.oo \
+      conftest$ac_exeext conftest.$ac_ext
+LDFLAGS=$SAVED_LDFLAGS
+if test "$ac_cv_lib_gsl_matrix" != yes
+then
+  echo "checking for linking against gsl matrix... no"
+else
+  echo "checking for linking against gsl matrix... yes"
+fi
 
 if test "$ac_cv_lib_m_cos" != yes
 then
@@ -2680,6 +2733,12 @@ echo "$as_me: error: could not find GSL -- Piranha requires GSL and cannot be bu
    { (exit 1); exit 1; }; }
 fi
 if test "$ac_cv_lib_gslcblas_cblas_dgemm" != yes
+then
+  { { echo "$as_me:$LINENO: error: could not find GSL -- Piranha requires GSL and cannot be built without it" >&5
+echo "$as_me: error: could not find GSL -- Piranha requires GSL and cannot be built without it" >&2;}
+   { (exit 1); exit 1; }; }
+fi
+if test "$ac_cv_lib_gsl_matrix" != yes
 then
   { { echo "$as_me:$LINENO: error: could not find GSL -- Piranha requires GSL and cannot be built without it" >&5
 echo "$as_me: error: could not find GSL -- Piranha requires GSL and cannot be built without it" >&2;}

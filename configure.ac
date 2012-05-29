@@ -100,6 +100,21 @@ CXXFLAGS=$SAVED_CXXFLAGS
 AC_CHECK_LIB([m],[cos])
 AC_CHECK_LIB([gslcblas],[cblas_dgemm])
 AC_CHECK_LIB([gsl],[gsl_blas_dgemm])
+ac_cv_lib_gsl_matrix=no
+SAVED_LDFLAGS=$LDFLAGS
+LDFLAGS="$LDFLAGS -lgsl"
+AC_LINK_IFELSE(
+  [AC_LANG_PROGRAM([#include "gsl/gsl_matrix_double.h"],
+    [gsl_matrix_calloc(5,5)])],
+  [ac_cv_lib_gsl_matrix=yes],
+  [])
+LDFLAGS=$SAVED_LDFLAGS
+if test "$ac_cv_lib_gsl_matrix" != yes
+then 
+  echo "checking for linking against gsl matrix... no"
+else
+  echo "checking for linking against gsl matrix... yes"
+fi
 
 if test "$ac_cv_lib_m_cos" != yes
 then
@@ -110,6 +125,10 @@ then
   AC_MSG_ERROR([could not find GSL -- Piranha requires GSL and cannot be built without it])
 fi
 if test "$ac_cv_lib_gslcblas_cblas_dgemm" != yes
+then
+  AC_MSG_ERROR([could not find GSL -- Piranha requires GSL and cannot be built without it])
+fi
+if test "$ac_cv_lib_gsl_matrix" != yes
 then
   AC_MSG_ERROR([could not find GSL -- Piranha requires GSL and cannot be built without it])
 fi
