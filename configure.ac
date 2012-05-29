@@ -117,9 +117,9 @@ else
 fi
 
 GSLERROR="could not find or link to GSL -- Piranha requires GSL and \
-         cannot be built without it. GSL can be downloaded from \
-         http://www.gnu.org/software/gsl/ -- please ensure GSL is \
-         correctly installed on your system."
+cannot be built without it. GSL can be downloaded from \
+http://www.gnu.org/software/gsl/ -- please ensure GSL is \
+correctly installed on your system."
 if test "$ac_cv_lib_m_cos" != yes 
 then
   AC_MSG_ERROR([$GSLERROR])
