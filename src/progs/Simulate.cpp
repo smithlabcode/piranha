@@ -392,7 +392,7 @@ GenomicRegionToBamAlignment(const unordered_map<string, size_t> &chrom_lookup,
   ba.Position = r.get_start();   // position (0-based) where alignment starts
   ba.Length = r.get_width();     // length of query sequence
   ba.Name = r.get_name();        // read name
-  ba.MapQuality = r.get_score(); // mapping quality score
+  ba.MapQuality = int(r.get_score()); // mapping quality score
   ba.QueryBases = string(r.get_width(), 'A');
   ba.Qualities = string(r.get_width(), 'I');
   ba.SetIsReverseStrand(r.neg_strand());     // sets value of "alignment

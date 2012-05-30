@@ -1,5 +1,5 @@
 #    Copyright (C) 2011 University of Southern California,
-#                       Philip J. Uren, Andrew D. Smith
+#    Philip J. Uren, Andrew D. Smith
 #
 #    Authors: Philip J. Uren, Andrew D. Smith
 #
@@ -17,35 +17,32 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-ifndef SMITHLAB_CPP
-$(error Must define SMITHLAB_CPP variable)
-endif
+all:
+	@make -C src OPT=1
 
-SOURCES = $(wildcard *.cpp)
-OBJECTS = $(patsubst %.cpp,%.o,$(SOURCES))
+install:
+	@make -C src OPT=1 install
+	
+test:
+	@make -C src OPT=1 test
+.PHONY: test
 
-CXX = g++
-CXXFLAGS = -Wall
-OPTFLAGS = -O3
-DEBUGFLAGS = -g
-
-ifeq "$(shell uname)" "Darwin"
-CXXFLAGS += -arch x86_64
-endif
-
-ifdef DEBUG
-CXXFLAGS += $(DEBUGFLAGS)
-endif
-
-ifdef OPT
-CXXFLAGS += $(OPTFLAGS)
-endif
-
-all: $(OBJECTS)
-
-%.o: %.cpp %.hpp
-	$(CXX) $(CXXFLAGS) -c -o $@ $< -I $(SMITHLAB_CPP)
-
-clean: 
-	@-rm -f *.o *~
+clean:
+	@make -C src clean
+	@rm -rf *.bz2
+	@rm -rf ./bin
+	@rm -rf ./developmentDocs
 .PHONY: clean
+
+developmentDocs:
+	@doxygen ./src/doxygen.config
+.PHONY: developmentDocs 
+
+distclean: clean
+	@make -C src OPT=1 distclean
+	@rm -rf Makefile autom4te.cache config.log config.status
+.PHONY: distclean
+
+
+tarball: clean distclean
+	DIR=$${PWD##*/}; echo $${DIR}; cd ..; tar --exclude=".*" -cvjf $${DIR}/$${DIR}.tar.bz2 $${DIR}
