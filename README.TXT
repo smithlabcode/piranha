@@ -59,7 +59,7 @@ Step 0 -- dependencies and requirements
   64-bit machine and GCC version ³ 4.1 (to support TR1). 
   
   Piranha additionally requires a functioning installation of the GNU 
-  Scientific Library (GSL). If you don't already have this installed, you will 
+  Scientific Library (GSL). If you don't already have this installed, you will
   need to download and install it from http://www.gnu.org/software/gsl/
   This release has been tested with GSL version 1.14
   
