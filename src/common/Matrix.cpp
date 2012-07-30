@@ -27,7 +27,7 @@
   \section bug Known Bugs
   
   \section history Revision History
-****/
+**/
 
 #include "Matrix.hpp"
 
