@@ -4,7 +4,6 @@
   Copyright (C) 2010  
   University of Southern California,
   Philip J. Uren,
-  Jin H. Park,
   Andrew D. Smith
   
   Authors: Philip J. Uren, Andrew D. Smith
