@@ -1,5 +1,6 @@
 /**
-  \file ZTP.hpp This header declares the zero-truncated Poisson distribution
+  \file ZTP.hpp
+  \brief This header declares the zero-truncated Poisson distribution
 
   \authors Philip J. Uren, Timothy Daley, Andrew D. Smith
 

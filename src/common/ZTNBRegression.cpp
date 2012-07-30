@@ -30,7 +30,7 @@
   \section bugs Known Bugs
   
   \section history Revision History
-****/
+**/
 
 #include <string>
 #include <vector>

@@ -6,7 +6,7 @@
                    | |    | | | | (_| | | | | | | | (_| | 
                    |_|    |_|_|  \__,_|_| |_|_| |_|\__,_|
                    **************************************
-                   *               V1.1.0               *
+                   *               V1.1.1               *
                    ************************************** 
                                         
 
@@ -56,12 +56,12 @@ It has been tested on MacOS X Snow Leopard, USCLinux, Ubuntu and SUSE.
 
 Step 0 -- dependencies and requirements
 ---------------------------------------
-  64-bit machine and GCC version ³ 4.1 (to support TR1). 
+  64-bit machine and GCC version > 4.1 (to support TR1). 
   
   Piranha additionally requires a functioning installation of the GNU 
-  Scientific Library (GSL). If you don't already have this installed, you will 
+  Scientific Library (GSL). If you don't already have this installed, you will
   need to download and install it from http://www.gnu.org/software/gsl/
-  This distribution has been tested with GSL version 1.14
+  This release has been tested with GSL version 1.14
   
   [OPTIONAL] Tests
     The regression tests (which you don't need to run, but can to test that 
@@ -94,8 +94,13 @@ Step 1 -- configuring
       --with-bam_tools_library="/some/path/BAMTools/lib/"
   
     the command is split into two lines here for aesthetic reasons, but it 
-    need not be so. Be aware that if you subsequently move the BAMTools library, 
-    Piranha will no longer work.
+    need not be so. There are a few caveats:
+      * If you subsequently move the BAMTools library, Piranha will not work.
+        (this should be obvious really).
+      * The BAMTools installer currently doesn't update the linker info 
+        after installation. That means you might install it, but Piranha will
+        still not find it when running ./configure -- in this case, I suggest
+        manually specifying the location as shown above.
 
 Step 2 -- building
 ------------------
@@ -118,7 +123,7 @@ Step 3 -- installing
   specify their full paths, or you can copy the binaries to another directory
   of your choice in your PATH.
   
-Step 4 -- testing [optional]
+Step 4 -- testing [OPTIONAL]
 ----------------------------
   You can verify that Piranha was built correctly by running the included
   unit and regression tests. At the command prompt (assuming your prompt is 
@@ -182,13 +187,13 @@ Help options:
 **************************************
 4. Input and output formats of Piranha
 *******************************************************************************
-   NOTE: BAM support is only available if Piranha was linked with BAMTools
-   =======================================================================
+    NOTE: BAM support is only available if Piranha was linked with BAMTools
+    =======================================================================
  
 Piranha takes three possible inputs:
-  1.) The response file   (BED or BAM format) [required]
-  2.) The covariate files (BED format)        [optional]      
-  3.) The model files     (XML format)        [optional]
+  1.) The response file   (BED or BAM format) [REQUIRED]
+  2.) The covariate files (BED format)        [OPTIONAL]      
+  3.) The model files     (XML format)        [OPTIONAL]
   
 The response file (always the first argument, and required) may contain:
   1.) Binned read counts. In this case the input can be provided in BED 

@@ -1,10 +1,20 @@
-/****
+/**
+  \file TruncatedPoissonRegression.hpp
+  \brief This header file declares the truncated Poisson regression class, which
+         is an implementation of the RegressionModel abstract interface.
+         We're using the Template Method Pattern so the fitting algorithms are
+         given in the superclass and this class just provides the
+         implementation of those components specific to the Truncated Poisson
+         regression.
+
+  \authors Philip J. Uren, Andrew D. Smith
+
+  \section copyright Copyright Details
   Copyright (C) 2011
   University of Southern California,
   Philip J. Uren, Andrew D. Smith
 
-  Authors: Philip J. Uren, Andrew D. Smith
-
+  \section license License Details
   This program is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation, either version 3 of the License, or
@@ -18,15 +28,10 @@
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-  --------------------
+  \section bugs Known Bugs
 
-  Known Bugs:    None
-
-  Revision
-  History:       None
-
-  TODO:          None
-****/
+  \section history Revision History
+**/
 
 #ifndef TRUNC_POISR_HPP
 #define TRUNC_POISR_HPP

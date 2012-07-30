@@ -1,0 +1,124 @@
+#    Copyright (C) 2011 University of Southern California,
+#    Philip J. Uren, Andrew D. Smith
+#
+#    Authors: Philip J. Uren, Andrew D. Smith
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+
+package = piranha
+version = 1.1.1
+tarname = $(package)
+distdir = $(tarname)-$(version)
+
+
+all:
+	@make -C src OPT=1
+.PHONY: all
+
+install:
+	@make -C src OPT=1 install
+	
+test:
+	@make -C src OPT=1 test
+.PHONY: test
+
+clean:
+	@make -C src clean
+	@rm -rf *.bz2
+	@rm -rf ./bin
+	@rm -rf ./developmentDocs
+.PHONY: clean
+
+developmentDocs:
+	@doxygen ./src/doxygen.config
+.PHONY: developmentDocs 
+
+distclean: clean
+	@make -C src OPT=1 distclean
+	@rm -rf Makefile autom4te.cache config.log config.status 
+	@rm -rf $(distdir) $(distdir).tar.gz
+.PHONY: distclean
+
+dist: $(distdir).tar.gz
+
+distcheck : $(distdir).tar.gz
+	gzip -cd $(distdir).tar.gz | tar xvf -
+	cd $(distdir) && ./configure && $(MAKE) all && $(MAKE) test
+	cd $(distdir) && $(MAKE) clean
+	rm -rf $(distdir)
+	@echo "*** Package $(distdir).tar.gz is ready for distribution"
+
+$(distdir).tar.gz : $(distdir)
+	tar chof - $(distdir) | gzip -9 -c > $@
+	rm -rf $(distdir)
+
+$(distdir) : FORCE
+	# make the directory structure 
+	mkdir -p $(distdir)/src
+	mkdir -p $(distdir)/scripts
+	mkdir -p $(distdir)/src/common
+	mkdir -p $(distdir)/src/progs
+	mkdir -p $(distdir)/src/test
+	mkdir -p $(distdir)/src/smithlab_cpp
+	mkdir -p $(distdir)/src/test/regressionTestInputs
+	mkdir -p $(distdir)/src/test/regressionTestOutputs
+	mkdir -p $(distdir)/src/gtest
+	mkdir -p $(distdir)/src/gtest/src
+	mkdir -p $(distdir)/src/gtest/include/gtest
+	mkdir -p $(distdir)/src/gtest/include/gtest/internal
+	# copy top level files
+	cp Makefile.in $(distdir)
+	cp README.TXT $(distdir)
+	cp configure $(distdir)
+	cp configure.ac $(distdir)
+	cp src/Makefile.in $(distdir)/src/Makefile.in
+	# copy scripts
+	cp scripts/*.py $(distdir)/scripts
+	# copy common src files
+	cp src/common/config.hpp.in $(distdir)/src/common
+	cp src/common/*.cpp $(distdir)/src/common
+	cp src/common/*.hpp $(distdir)/src/common
+	cp src/common/Makefile.in $(distdir)/src/common
+	# copy smithlab_cpp src files
+	cp src/smithlab_cpp/Makefile $(distdir)/src/smithlab_cpp
+	cp src/smithlab_cpp/*.cpp $(distdir)/src/smithlab_cpp
+	cp src/smithlab_cpp/*.hpp $(distdir)/src/smithlab_cpp
+	# copy the google-test framework
+	cp src/gtest/src/*.cc $(distdir)/src/gtest/src
+	cp src/gtest/src/*.h $(distdir)/src/gtest/src
+	cp src/gtest/include/gtest/*.h $(distdir)/src/gtest/include/gtest
+	cp src/gtest/include/gtest/internal/*.h $(distdir)/src/gtest/include/gtest/internal
+	# copy the unit and regressions testing code/fixtures
+	cp src/test/*.cpp $(distdir)/src/test
+	cp src/test/*.py $(distdir)/src/test
+	cp src/test/Makefile.in $(distdir)/src/test
+	cp src/test/regressionTests.xml.in $(distdir)/src/test
+	cp src/test/regressionTestInputs/*.dat $(distdir)/src/test/regressionTestInputs
+	cp src/test/regressionTestInputs/*.bed $(distdir)/src/test/regressionTestInputs
+	cp src/test/regressionTestInputs/*.bam $(distdir)/src/test/regressionTestInputs
+	cp src/test/regressionTestOutputs/*.expected $(distdir)/src/test/regressionTestOutputs
+	cp src/test/regressionTestOutputs/*.stdout $(distdir)/src/test/regressionTestOutputs
+	# copy the programs
+	cp src/progs/*.cpp $(distdir)/src/progs
+	cp src/progs/Makefile.in $(distdir)/src/progs
+.PHONY: dist
+
+FORCE:
+	-rm $(distdir).tar.gz > /dev/null 2>&1
+	-rm -rf $(distdir) > /dev/null 2>&1
+.PHONY: FORCE
+
+#tarball: clean distclean
+#	DIR=$${PWD##*/}; echo $${DIR}; cd ..; tar --exclude=".*" -cvjf $${DIR}/$${DIR}.tar.bz2 $${DIR}

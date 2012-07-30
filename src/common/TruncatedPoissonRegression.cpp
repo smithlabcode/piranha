@@ -31,7 +31,7 @@
   \section bugs Known Bugs
   
   \section history Revision History
-****/
+**/
 
 #include "TruncatedPoissonRegression.hpp"
 #include "PoissonRegression.hpp"
