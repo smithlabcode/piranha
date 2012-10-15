@@ -50,6 +50,8 @@ using std::string;
 using std::isfinite;
 using std::stringstream;
 
+const double Matrix::threshold;
+
 /******************************************************************************
  *  MATRIX CLASS
  */

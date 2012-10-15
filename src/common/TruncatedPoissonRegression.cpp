@@ -58,6 +58,7 @@ using std::string;
 using std::isfinite;
 using std::stringstream;
 
+const double TruncatedPoissonRegression::tiny;
 
 /******************************************************************************
  *  Specifying the distribution

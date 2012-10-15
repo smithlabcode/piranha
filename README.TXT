@@ -6,7 +6,7 @@
                    | |    | | | | (_| | | | | | | | (_| | 
                    |_|    |_|_|  \__,_|_| |_|_| |_|\__,_|
                    **************************************
-                   *               V1.1.1               *
+                   *               V1.1.2               *
                    ************************************** 
                                         
 
@@ -62,6 +62,7 @@ Step 0 -- dependencies and requirements
   Scientific Library (GSL). If you don't already have this installed, you will
   need to download and install it from http://www.gnu.org/software/gsl/
   This release has been tested with GSL version 1.14
+	Your installation of GSL must built for a 64 bit architecture.
   
   [OPTIONAL] Tests
     The regression tests (which you don't need to run, but can to test that 

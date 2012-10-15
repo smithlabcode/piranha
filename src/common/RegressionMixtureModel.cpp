@@ -49,6 +49,8 @@ using std::string;
 using std::ifstream;
 using std::stringstream;
 
+const double RegressionMixtureModel::STOPPING_CRITERIA;
+
 /******************************************************************************
  * CONSTRUCTORS, DESTRUCTORS AND OBJECT INITIALIZATION
  */

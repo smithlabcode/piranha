@@ -56,6 +56,11 @@ using std::endl;
 using std::set;
 
 
+const double DistributionMixtureModel::stoppingEM;
+const size_t DistributionMixtureModel::emMaxIter;
+const double DistributionMixtureModel::mixingLowerBound;
+
+
 /******************************************************************************
  * Constructors, destructors and object initialization
  */

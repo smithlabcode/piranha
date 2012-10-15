@@ -48,6 +48,9 @@ using std::cout;
 using std::cin;
 using std::endl;
 
+const double PoissonRegression::threshold;
+const double PoissonRegression::maxIter;
+const double PoissonRegression::tiny;
 
 /******************************************************************************
  * Parameter estimation
