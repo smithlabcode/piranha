@@ -1,5 +1,5 @@
 /**
-  \file NegativeBinomialRegression.cpp
+  \file NegativeBinomialRegression.hpp
   \brief This header declares the negative binomial regression model class
 
   \authors Philip J. Uren, Andrew D. Smith

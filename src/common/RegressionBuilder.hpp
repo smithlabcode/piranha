@@ -1,10 +1,16 @@
-/****
+/**
+  \file RegressionBuilder.hpp
+  \brief This header file declares and defines the RegressionBuilder class,
+         which is a static factory for constructing regression models
+
+  \authors Philip J. Uren, Andrew D. Smith
+
+  \section copyright Copyright Details
   Copyright (C) 2011
   University of Southern California,
   Philip J. Uren, Andrew D. Smith
 
-  Authors: Philip J. Uren, Andrew D. Smith
-
+  \section license License Details
   This program is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation, either version 3 of the License, or
@@ -18,17 +24,10 @@
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+  \section bugs Known Bugs
 
-  Known Bugs:    None
-
-  Revision
-  History:       None
-
-  TODO:          It probably makes sense to move the coefficients vector
-                 up a level in the hierarchy, to RegressionModel (..?), after
-                 all, it must be that all regression models have regression
-                 coefficients!
-****/
+  \section history Revision History
+**/
 
 
 #ifndef RBL_HPP

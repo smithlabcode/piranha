@@ -77,6 +77,10 @@ CPPFLAGS += $(INCLUDE_DIRS)
 
 # Flags passed to the C++ compiler.
 CXXFLAGS += -g -Wall -Wextra
+ifeq "$(shell uname)" "Darwin"
+CXXFLAGS += -arch x86_64
+endif
+
 
 # All Google Test headers.  Usually you shouldn't change this definition.
 GTEST_HEADERS = $(GTEST_DIR)/include/gtest/*.h \
@@ -87,6 +91,11 @@ all : $(TESTS)
 
 clean :
 	@rm -f $(TESTS) gtest.a gtest_main.a *.o testlog.txt
+.PHONY: clean
+
+distclean :
+	@rm Makefile regressionTests.xml
+.PHONY: distclean
 
 ########################## How to build Google Test  ##########################
 # For simplicity and to avoid depending on Google Test's

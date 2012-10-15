@@ -30,7 +30,7 @@
   \section bugs Known Bugs
   
   \section history Revision History
-****/
+**/
 
 #ifndef ZTNBR_HPP
 #define ZTNBR_HPP

@@ -1,4 +1,4 @@
-/****
+/**
   \file ReadBinner.hpp
   \brief Declares the ReadBinner class, which takes provides functionality
          for taking collections of sequencing reads and collecting them into
