@@ -6,7 +6,7 @@
                    | |    | | | | (_| | | | | | | | (_| | 
                    |_|    |_|_|  \__,_|_| |_|_| |_|\__,_|
                    **************************************
-                   *               V1.1.2               *
+                   *               V1.1.3               *
                    ************************************** 
                                         
 
@@ -52,7 +52,10 @@ Table of contents
 1. Building and Installing Piranha
 *******************************************************************************
 Piranha has been designed to operate in a UNIX-like environment.
-It has been tested on MacOS X Snow Leopard, USCLinux, Ubuntu and SUSE. 
+It has been tested on MacOS X Snow Leopard, USCLinux, Ubuntu and SUSE. We've
+made every effort to ensure it's compatible with a wide range of systems, but
+we can't test on all possible platforms and configurations. If you find an
+incompatibility when building or using it, please let us know!
 
 Step 0 -- dependencies and requirements
 ---------------------------------------
@@ -62,7 +65,7 @@ Step 0 -- dependencies and requirements
   Scientific Library (GSL). If you don't already have this installed, you will
   need to download and install it from http://www.gnu.org/software/gsl/
   This release has been tested with GSL version 1.14
-	Your installation of GSL must built for a 64 bit architecture.
+  Your installation of GSL must be built for a 64 bit architecture.
   
   [OPTIONAL] Tests
     The regression tests (which you don't need to run, but can to test that 
@@ -164,6 +167,8 @@ Usage: Piranha [OPTIONS] *.bed
 
 Options:
   -o, -output            Name of output file, STDOUT if omitted 
+	-s, -sort              indicates that input is unsorted and Piranha should 
+	                       sort it for you
   -b, -bin_size          indicates that input is raw reads and should be binned 
                          into bins of this size 
   -f, -fit               Fit only, output model to file 
