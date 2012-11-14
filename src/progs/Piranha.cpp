@@ -90,6 +90,16 @@ enum inputType{BED};
 const size_t ALREADY_BINNED = 0;
 
 /**
+ * \brief functor for sorting genomic regions
+ */
+struct regionComp {
+  bool operator()(const GenomicRegion& a,
+          const GenomicRegion& b) const {
+    return a < b;
+  }
+};
+
+/**
  * \brief returns true if the two GenomicRegions cover exactly the same genomic
  *        location, cares only about chrom, start and end.
  */
@@ -166,11 +176,16 @@ guessFileType(const string &filename, const bool verbose = false) {
  * \param binSize[in]    if we need to bin the reads, what is the bin size?
  *                       Can be set to ALREADY_BINNED if no binning should be
  *                       done (default).
+ * \param SORT[in]       The input needs to be sorted; if this is true, we
+ *                       sort the input ourselves (faster to leave this false
+ *                       and just have the regions pre-sorted though)
+ * \param verbose[in]    if true, print status messages to stderr
  */
 static void
 loadResponses(const string &filename, vector<double> &response,
               vector<GenomicRegion> &regions,
               const size_t binSize = ALREADY_BINNED,
+              const bool SORT = false,
               const bool verbose = false) {
   regions.clear();
   response.clear();
@@ -193,7 +208,9 @@ loadResponses(const string &filename, vector<double> &response,
   }
 #ifdef BAM_SUPPORT
   else if (type == BAM) {
+    size_t skippedInvalidChromID = 0;
     BamReader reader;
+    // TODO -- need to check that filename is valid; BAMTools seems not to
     reader.Open(filename);
 
     // Get header and reference
@@ -206,12 +223,33 @@ loadResponses(const string &filename, vector<double> &response,
 
     BamAlignment bam;
     while (reader.GetNextAlignment(bam)) {
-      GenomicRegion r;
-      BamAlignmentToGenomicRegion(chrom_lookup, bam, r);
-      regions.push_back(r);
+      if (bam.RefID == -1) {
+        skippedInvalidChromID += 1;
+      } else {
+        GenomicRegion r;
+        BamAlignmentToGenomicRegion(chrom_lookup, bam, r);
+        regions.push_back(r);
+      }
     }
+
+    if (skippedInvalidChromID > 0)
+      cerr << "WARNING: Skipped " << skippedInvalidChromID << " in BAM file "
+           << filename << " due to unknown reference IDs" << endl;
+
   }
 #endif
+
+  // do we need to sort things?
+  if (SORT) {
+    sort(regions.begin(), regions.end(), regionComp());
+  }
+  if (!check_sorted(regions)) {
+    stringstream ss;
+    ss << filename << " is not sorted. Required sort order is chrom, end, "
+          "start, strand. You must either sort them yourself, or use the "
+          "-s option";
+    throw SMITHLABException(ss.str());
+  }
 
   // now, do we need to bin the reads?
   if (binSize != ALREADY_BINNED) {
@@ -241,6 +279,10 @@ loadResponses(const string &filename, vector<double> &response,
  *                        is the value of the ith covariate for the jth bin.
  * \param NORMALISE[in]   if true (the default), we normalise all covariate
  *                        values so they are between zero and one (exclusive).
+ * \param SORT[in]        The input needs to be sorted; if this is true, we
+ *                        sort the input ourselves (faster to leave this false
+ *                        and just have the regions pre-sorted though)
+ * \param VERBOSE[in]     if true, print status messages to stderr
  * \throws SMITHLABException if there is any response bin missing a covariate
  *                           bin.
  */
@@ -248,7 +290,9 @@ static void
 loadCovariates(const vector<string> &filenames,
                const vector<GenomicRegion> &sites,
                vector<vector<double> > &covariates,
-               const bool NORMALISE_COVARS=true) {
+               const bool SORT = false,
+               const bool NORMALISE_COVARS=true,
+               const bool VERBOSE=false) {
   if (filenames.size() <= 0) {
     stringstream ss;
     ss << "failed to load covariates. Reason: didn't get any input filenames";
@@ -257,40 +301,53 @@ loadCovariates(const vector<string> &filenames,
 
   // load covariates
   covariates.resize(filenames.size());
-  for (size_t i=0; i< covariates.size(); i++) {
-    ifstream fstr (filenames[i].c_str());
-    if (!fstr.good()) {
+  for (size_t i = 0; i < covariates.size(); i++) {
+    // first load the covariate file
+    vector<GenomicRegion> covTmp;
+    ReadBEDFile(filenames[i], covTmp);
+
+    // do we need to sort things?
+    if (SORT) {
+      sort(covTmp.begin(), covTmp.end(), regionComp());
+    }
+    if (!check_sorted(covTmp)) {
       stringstream ss;
-      ss << "failed to open " << filenames[i];
+      ss << filenames[i] << " is not sorted. Required sort order is chrom, "
+         << "end, start, strand. You must either sort them yourself, or use "
+         << "the -s option";
       throw SMITHLABException(ss.str());
     }
 
-    string line;
-    size_t siteIdx = 0;
-    while(fstr.good()) {
-      getline(fstr,line);
-      line = smithlab::strip(line);
-      if (line.empty()) continue;
-      GenomicRegion g(line);
-      if (sameRegion(g, sites[siteIdx])) {
-        covariates[i].push_back(g.get_score());
-        ++siteIdx;
-        if (siteIdx == sites.size())
-          break;
-      } else if (sites[siteIdx] < g) {
+    // tell the user how many values we found...
+    if (VERBOSE)
+      cerr << "loaded " << covTmp.size() << " elements from "
+           << filenames[i] << endl;
+
+    // cry if it doesn't match what we expect
+    if (covTmp.size() < sites.size()) {
+      stringstream ss;
+      ss << "failed loading covariate from " << filenames[i] << ". Reason: "
+         << "expected " << sites.size() << " regions, but found "
+         << covTmp.size() << endl;
+      throw SMITHLABException(ss.str());
+    }
+
+    // pull out the values and match up the regions
+    size_t covIndex = 0;
+    for (size_t j=0; j<sites.size(); j++) {
+      while ((covIndex < covTmp.size()) && (covTmp[covIndex] < sites[j])) {
+        covIndex += 1;
+      }
+      if ((covIndex >= covTmp.size()) || (sites[j] < covTmp[covIndex])) {
         stringstream ss;
         ss << "failed loading covariate from " << filenames[i] << ". Reason: "
            << "could not find a value to associate with the response region "
-           << sites[siteIdx];
+           << sites[j];
         throw SMITHLABException(ss.str());
       }
-    }
-    if (siteIdx != sites.size()) {
-      stringstream ss;
-      ss << "failed loading covariate from " << filenames[i] << ". Reason: "
-         << "could not find a value to associate with the response region "
-         << sites[siteIdx];
-      throw SMITHLABException(ss.str());
+      else if (sameRegion(covTmp[covIndex], sites[j])) {
+        covariates[i].push_back(covTmp[covIndex].get_score());
+      }
     }
   }
 
@@ -441,6 +498,7 @@ main(int argc, const char* argv[]) {
     bool VERBOSE = false;
     bool FITONLY = false;
     bool NO_NORMALISE_COVARS = false;
+    bool SORT = false;
 
     size_t numComponents = 1;
     string distType = "DEFAULT";
@@ -448,15 +506,15 @@ main(int argc, const char* argv[]) {
     size_t binSize = ALREADY_BINNED;
     
     /****************** COMMAND LINE OPTIONS ********************/
-    string about = "Piranha Version 1.0 -- A program for finding peaks in "
+    string about = "Piranha Version 1.1.3 -- A program for finding peaks in "
                    "high throughput RNA-protein interaction data (e.g. RIP- "
                    "and CLIP-Seq). Written by Philip J. Uren and "
                    "Andrew D. Smith. See README.TXT for further details";
     OptionParser opt_parse(strip_path(argv[0]), about, "[*.bed] *.bed");
     opt_parse.add_opt("output", 'o', "Name of output file, STDOUT if omitted", 
                       false, outfn);
-    /*opt_parse.add_opt("components", 'c', "number of mixture components",
-                      false, numComponents);*/
+    opt_parse.add_opt("sort", 's', "indicates that input is unsorted and "
+                      "Piranha should sort it for you", false, SORT);
     opt_parse.add_opt("bin_size", 'b', "indicates that input is raw reads and "
                       "should be binned into bins of this size",
                       false, binSize);
@@ -519,12 +577,11 @@ main(int argc, const char* argv[]) {
     vector<GenomicRegion> sites;
     vector<double> responses;
     vector< vector<double> > covariates;
-    loadResponses(leftover_args.front(), responses, sites,
-                  binSize);
+    loadResponses(leftover_args.front(), responses, sites, binSize, SORT);
     if (leftover_args.size() > 1) {
       vector<string> cfnames =
           vector<string>(leftover_args.begin() + 1, leftover_args.end());
-      loadCovariates(cfnames, sites, covariates, !NO_NORMALISE_COVARS);
+      loadCovariates(cfnames, sites, covariates, SORT, !NO_NORMALISE_COVARS);
     }
 
     // tell the user what options were set and what files we found
@@ -548,6 +605,8 @@ main(int argc, const char* argv[]) {
       cerr << "model type? " << distType << endl;
       if (NO_NORMALISE_COVARS) cerr << "normalise covariates? no" << endl;
       else cerr << "normalise covariates? yes" << endl;
+      if (SORT) cerr << "sort input files? yes" << endl;
+      else cerr << "sort input files? no" << endl;
     }
 
     // if we're fitting only a single component, rather than a mixture..

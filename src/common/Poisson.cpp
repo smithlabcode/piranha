@@ -43,6 +43,8 @@ using std::cerr;
 using std::endl;
 using std::isfinite;
 
+const double Poisson::MAX_RANDOM_LAMBDA;
+
 /******************************************************************************
  * Simple inspectors
  */

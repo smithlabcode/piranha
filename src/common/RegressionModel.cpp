@@ -47,6 +47,9 @@ using std::cerr;
 using std::accumulate;
 using std::stringstream;
 
+const double RegressionModel::devianceThreshold;
+const double RegressionModel::maxLinearPredictorValue;
+const double RegressionModel::minLinearPredictorValue;
 
 /******************************************************************************
  * Simple mutators

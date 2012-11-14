@@ -1,17 +1,18 @@
-/****
-  This is an abstract base class for all regression models. It defines
-  certain common members that must be implemented by all regression model
-  subclasses and gives implementations for those operations that will
-  be unchanged amongst subclasses
+/**
+  \file RegressionModel.hpp
+  \brief This is an abstract base class for all regression models. It defines
+         certain common members that must be implemented by all regression
+         model subclasses and gives implementations for those operations that
+         will be unchanged amongst subclasses
 
-  --------------------
+  \authors Philip J. Uren, Andrew D. Smith
 
+  \section copyright Copyright Details
   Copyright (C) 2011
   University of Southern California,
   Philip J. Uren, Andrew D. Smith
 
-  Authors: Philip J. Uren, Andrew D. Smith
-
+  \section license License Details
   This program is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation, either version 3 of the License, or
@@ -25,13 +26,10 @@
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-  --------------------
+  \section bugs Known Bugs
 
-  Known Bugs:    None
-
-  Revision
-  History:       None
-****/
+  \section history Revision History
+**/
 
 #ifndef REGMDL_HPP
 #define REGMDL_HPP

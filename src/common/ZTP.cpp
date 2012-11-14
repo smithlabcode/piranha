@@ -45,6 +45,8 @@ using std::cout;
 using std::endl;
 using std::isfinite;
 
+const double ZeroTruncatedPoisson::tolerance;
+const double ZeroTruncatedPoisson::MAX_RANDOM_LAMBDA;
 
 /******************************************************************************
  * Static functions used in ZTP parameter estimation

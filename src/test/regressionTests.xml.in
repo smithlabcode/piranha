@@ -152,7 +152,7 @@
   <test>
     <name> Poisson Regression Test </name>
     <command> 
-      ../../bin/Piranha -n -f -d PoissonRegression 
+      ../../bin/Piranha -s -n -f -d PoissonRegression 
       regressionTestInputs/PoissonRegressionTest_response.dat 
       regressionTestInputs/PoissonRegressionTest_covariate1.dat 
       regressionTestInputs/PoissonRegressionTest_covariate2.dat 
@@ -169,7 +169,7 @@
   <test>
     <name> Poisson Regression Test 2 </name>
     <command> 
-      ../../bin/Piranha -n -d PoissonRegression 
+      ../../bin/Piranha -s -n -d PoissonRegression 
       regressionTestInputs/PoissonRegressionTest_response.dat 
       regressionTestInputs/PoissonRegressionTest_covariate1.dat 
       regressionTestInputs/PoissonRegressionTest_covariate2.dat 
@@ -184,7 +184,7 @@
   <test>
   	<name> NB Regression Test </name>
     <command> 
-      ../../bin/Piranha -n -f -d NegativeBinomialRegression 
+      ../../bin/Piranha -s -n -f -d NegativeBinomialRegression 
       regressionTestInputs/NBRegressionTest_response.dat 
       regressionTestInputs/NBRegressionTest_covariate1.dat 
       regressionTestInputs/NBRegressionTest_covariate2.dat 
@@ -199,7 +199,7 @@
   <test>
     <name> ZTNB Regression Test </name>
     <command> 
-  		../../bin/Piranha -n -f -d ZeroTruncatedNegativeBinomialRegression 
+  		../../bin/Piranha -s -n -f -d ZeroTruncatedNegativeBinomialRegression 
   		regressionTestInputs/ZTNBRegressionTest_response.dat 
   		regressionTestInputs/ZTNBRegressionTest_covariate1.dat 
   		regressionTestInputs/ZTNBRegressionTest_covariate2.dat 
@@ -214,7 +214,7 @@
   <test>
     <name> ZTP Regression Test </name>
     <command> 
-  	  ../../bin/Piranha -n -f -d ZeroTruncatedPoissonRegression 
+  	  ../../bin/Piranha -s -n -f -d ZeroTruncatedPoissonRegression 
   	  regressionTestInputs/ZTPRegressionTest_response.dat 
   	  regressionTestInputs/ZTPRegressionTest_covariate1.dat 
   	  regressionTestInputs/ZTPRegressionTest_covariate2.dat 
@@ -227,7 +227,7 @@
   <test>
   	<name>NB Regression Test 2</name>
   	<command>
-	  ../../bin/Piranha -d NegativeBinomialRegression
+	  ../../bin/Piranha -s -d NegativeBinomialRegression
 	  regressionTestInputs/NBRegressionTest_response.dat
       regressionTestInputs/NBRegressionTest_covariate1.dat
       regressionTestInputs/NBRegressionTest_covariate2.dat
@@ -240,7 +240,7 @@
   <test>
     <name> ZTNB Regression Test 2 </name>
     <command>
-      ../../bin/Piranha -d ZeroTruncatedNegativeBinomialRegression
+      ../../bin/Piranha -s -d ZeroTruncatedNegativeBinomialRegression
       regressionTestInputs/ZTNBRegressionTest_response.dat
       regressionTestInputs/ZTNBRegressionTest_covariate1.dat
       regressionTestInputs/ZTNBRegressionTest_covariate2.dat
@@ -255,7 +255,7 @@
   <test>
     <name> ZTP Regression Test 2 </name>
     <command>
-      ../../bin/Piranha -n -d ZeroTruncatedPoissonRegression
+      ../../bin/Piranha -s -n -d ZeroTruncatedPoissonRegression
       regressionTestInputs/ZTPRegressionTest_response.dat
       regressionTestInputs/ZTPRegressionTest_covariate1.dat
       regressionTestInputs/ZTPRegressionTest_covariate2.dat

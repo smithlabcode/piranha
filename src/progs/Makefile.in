@@ -54,7 +54,7 @@ all:    $(PROGS)
 	$(CXX) $(CFLAGS) -c -o $@ $< $(INCLUDEARGS)	
 
 %: %.cpp
-	$(CXX) $(CFLAGS) -o $@ $^ $(INCLUDEARGS) $(LIBS)
+	$(CXX) $(CFLAGS) @rpathflags@ -o $@ $^ $(INCLUDEARGS) $(LIBS)
 
 Piranha: $(addprefix $(SMITHLAB_CPP)/, GenomicRegion.o smithlab_os.o \
 	smithlab_utils.o OptionParser.o MappedRead.o)
@@ -77,8 +77,12 @@ install: all
 
 clean:
 	@-rm -f $(PROGS) *.o *.so *.a *~
+.PHONY: clean
+
+distclean : clean
+	@rm Makefile
+.PHONY : distclean
 	
 test:
 	make -C ../test SMITHLAB_CPP=$(SMITHLAB_CPP) test; \
 
-.PHONY: clean

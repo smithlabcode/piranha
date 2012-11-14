@@ -30,7 +30,7 @@
   \section bugs Known Bugs
   
   \section history Revision History
-****/
+**/
 
 #include <string>
 #include <vector>
@@ -56,6 +56,17 @@ using std::string;
 using std::isfinite;
 using std::accumulate;
 using std::stringstream;
+
+const double ZTNBRegression::dispersonThreshold;
+const double ZTNBRegression::maxAlpha;
+const double ZTNBRegression::minAlpha;
+const double ZTNBRegression::maxZeroProb;
+const double ZTNBRegression::minZeroProb;
+const double ZTNBRegression::minVariance;
+const double ZTNBRegression::maxExpectedValue;
+const double ZTNBRegression::minZeroTolerance;
+const double ZTNBRegression::maxOneTolerance;
+const size_t ZTNBRegression::maxDispersionDampeningIters;
 
 /******************************************************************************
  * Simple Inspectors

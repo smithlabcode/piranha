@@ -1,33 +1,32 @@
-/****   
- 
-  Description: TODO
+/**
+  \file NegativeBinomial.hpp
+  \brief This header file declares the negative binomial distribution class
 
+  \authors Philip J. Uren, Qiang Song, Andrew D. Smith
+
+  \section copyright Copyright Details
   Copyright (C) 2011
   University of Southern California,
   Philip J. Uren, Qiang Song, Andrew D. Smith
-  
-  Authors: Philip J. Uren, Qiang Song, Andrew D. Smith
-  
+
+  \section license License Details
   This program is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation, either version 3 of the License, or
   (at your option) any later version.
-  
+
   This program is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
   GNU General Public License for more details.
-  
+
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
-  
-  --------------------
-  
-  Known Bugs:    None
-  
-  Revision 
-  History:       None
-****/
+
+  \section bugs Known Bugs
+
+  \section history Revision History
+**/
 
 #ifndef NBINOM_HPP
 #define NBINOM_HPP

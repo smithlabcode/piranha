@@ -31,7 +31,7 @@
   \section bugs Known Bugs
   
   \section history Revision History
-****/
+**/
 
 #include "TruncatedPoissonRegression.hpp"
 #include "PoissonRegression.hpp"
@@ -58,6 +58,7 @@ using std::string;
 using std::isfinite;
 using std::stringstream;
 
+const double TruncatedPoissonRegression::tiny;
 
 /******************************************************************************
  *  Specifying the distribution
