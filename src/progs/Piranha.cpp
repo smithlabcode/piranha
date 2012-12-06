@@ -99,6 +99,7 @@ struct regionComp {
   }
 };
 
+
 /**
  * \brief returns true if the two GenomicRegions cover exactly the same genomic
  *        location, cares only about chrom, start and end.
@@ -112,6 +113,7 @@ sameRegion(const GenomicRegion &r1, const GenomicRegion &r2) {
   }
   return true;
 }
+
 
 #ifdef BAM_SUPPORT
 /**
@@ -141,6 +143,7 @@ BamAlignmentToGenomicRegion(const unordered_map<size_t, string> &chrom_lookup,
 }
 #endif
 
+
 /**
  * \brief guess whether this is a BAM file or a BED file -- doesn't check
  *        whether the file exists or not. Very basic check of file extension.
@@ -164,7 +167,6 @@ guessFileType(const string &filename, const bool verbose = false) {
 
   return BED;
 }
-
 
 
 /**
@@ -263,6 +265,24 @@ loadResponses(const string &filename, vector<double> &response,
   for (size_t i=0; i<regions.size(); i++) {
     response.push_back(regions[i].get_score());
     regions[i].set_score(0);
+  }
+}
+
+
+/**
+ * \brief TODO
+ * \param allResponses[in/out]
+ * \param foregroundResponses[out]
+ */
+void splitResponses(vector<double>& allResponses,
+                    vector<double>& foregroundResponses, const double thresh) {
+  const size_t N = allResponses.size();
+  const double INC = 1/((double)N);
+
+  // first determine where to split
+  size_t relThresh = allResponses[N-1];
+  for (size_t i=0; i<N; i++) {
+    double p = i / (double) N;
   }
 }
 
@@ -371,6 +391,16 @@ loadCovariates(const vector<string> &filenames,
 /**
  * \brief Use a single regression model to find peaks and output each
  *        input region with a p-value
+ * \param VERBOSE       TODO
+ * \param FITONLY       TODO
+ * \param sites         TODO
+ * \param responses     TODO
+ * \param covariates    TODO
+ * \param ftmthd        TODO
+ * \param distType      TODO
+ * \param modelfn       TODO
+ * \param pThresh       output sites that meet this threshold on significance
+ * \param ostrm         TODO
  */
 static void
 FindPeaksSingleComponentRegression(const bool VERBOSE, const bool FITONLY,
@@ -379,7 +409,8 @@ FindPeaksSingleComponentRegression(const bool VERBOSE, const bool FITONLY,
                                    const vector< vector<double> > &covariates,
                                    const FittingMethod ftmthd,
                                    const string &distType,
-                                   const string& modelfn, ostream& ostrm) {
+                                   const string& modelfn, const double pThresh,
+                                   ostream& ostrm) {
   if (covariates.size() < 1) {
     stringstream ss;
     ss << "Peak finding using regression method " << distType << "failed. "
@@ -423,10 +454,13 @@ FindPeaksSingleComponentRegression(const bool VERBOSE, const bool FITONLY,
     distro->save(ostrm);
   } else {
     for (size_t i=0; i < n_sites; i++) {
-      GenomicRegion tmp(sites[i]);
-      tmp.set_score(responses[i]);
-      ostrm << tmp << '\t' << distro->pvalue(responses[i], covariates_t[i])
-            << endl;
+      const double p = distro->pvalue(responses[i], covariates_t[i]);
+      if (p <= pThresh) {
+        GenomicRegion tmp(sites[i]);
+        tmp.set_score(responses[i]);
+        ostrm << tmp << '\t' << p
+              << endl;
+      }
     }
   }
 
@@ -446,13 +480,15 @@ FindPeaksSingleComponentRegression(const bool VERBOSE, const bool FITONLY,
  *                  fitting
  * \param sites     genomic regions representing the bins being considered
  * \param responses read counts for each of the sites
- * \param outfn     write regions to this output stream
+ * \param pThresh   output sites that meet this threshold on significance
+ * \param ostrm     write regions to this output stream
  */
 static void 
 FindPeaksSingleComponentSimple(const bool VERBOSE, const bool FITONLY,
                                const string &distType, const string &modelfn,
                                const vector<GenomicRegion> &sites,
                                const vector<double> &responses,
+                               const double pThresh,
                                ostream& ostrm) {
 
   if (VERBOSE)
@@ -477,9 +513,12 @@ FindPeaksSingleComponentSimple(const bool VERBOSE, const bool FITONLY,
     distro->save(ostrm);
   } else {
     for (size_t i=0; i < n_sites; i++) {
-      GenomicRegion tmp(sites[i]);
-      tmp.set_score(responses[i]);
-      ostrm << tmp << '\t' << distro->pvalue(responses[i]) << endl;
+      const double p = distro->pvalue(responses[i]);
+      if (p <= pThresh) {
+        GenomicRegion tmp(sites[i]);
+        tmp.set_score(responses[i]);
+        ostrm << tmp << '\t' << p << endl;
+      }
     }
   }
 
@@ -494,6 +533,9 @@ FindPeaksSingleComponentSimple(const bool VERBOSE, const bool FITONLY,
 int 
 main(int argc, const char* argv[]) {
   try {
+    const double DEFAULT_PTHRESH = 0.01;
+    const double DEFAULT_BGTHRESH = 0.99;
+
     string modelfn = "", outfn;
     bool VERBOSE = false;
     bool FITONLY = false;
@@ -502,10 +544,12 @@ main(int argc, const char* argv[]) {
 
     size_t numComponents = 1;
     string distType = "DEFAULT";
+    double pthresh = DEFAULT_PTHRESH;
+    double bgThresh = DEFAULT_BGTHRESH;
     string fittingMethodStr = defaultFittingMethod.toString();
     size_t binSize = ALREADY_BINNED;
     
-    /****************** COMMAND LINE OPTIONS ********************/
+    /************************* COMMAND LINE OPTIONS **************************/
     string about = "Piranha Version 1.1.3 -- A program for finding peaks in "
                    "high throughput RNA-protein interaction data (e.g. RIP- "
                    "and CLIP-Seq). Written by Philip J. Uren and "
@@ -515,6 +559,14 @@ main(int argc, const char* argv[]) {
                       false, outfn);
     opt_parse.add_opt("sort", 's', "indicates that input is unsorted and "
                       "Piranha should sort it for you", false, SORT);
+    opt_parse.add_opt("p_threshold", 'p', "significance threshold for sites",
+                      false, pthresh);
+    opt_parse.add_opt("background_thresh", 'a', "indicates that this "
+                                                "proportion of the lowest "
+                                                "scores should be considered "
+                                                "the background. Default is "
+                                                "0.99",
+                      false, bgThresh);
     opt_parse.add_opt("bin_size", 'b', "indicates that input is raw reads and "
                       "should be binned into bins of this size",
                       false, binSize);
@@ -586,15 +638,8 @@ main(int argc, const char* argv[]) {
 
     // tell the user what options were set and what files we found
     if (VERBOSE) {
-      cerr << "loaded " << responses.size() <<  " elements from "
-           << leftover_args.front() << endl;
-      if (leftover_args.size() > 1) {
-        vector<string> cfnames =
-            vector<string>(leftover_args.begin() + 1, leftover_args.end());
-        cerr << "loaded " << covariates.size() << " covariates from ";
-        for (size_t i=0; i<cfnames.size(); i++) cerr << cfnames[i] << "\t";
-        cerr << endl;
-      } else cerr << "no covariates found" << endl;
+      cerr << "Piranha was run with the following options: " << endl;
+      cerr << "Significance threshold: " << pthresh << endl;
       if (!outfn.empty()) cerr << "writing output to " << outfn << endl;
       else cerr << "writing output to stdout" << endl;
       if (binSize == ALREADY_BINNED) cerr << "input is already binned" << endl;
@@ -607,6 +652,15 @@ main(int argc, const char* argv[]) {
       else cerr << "normalise covariates? yes" << endl;
       if (SORT) cerr << "sort input files? yes" << endl;
       else cerr << "sort input files? no" << endl;
+      cerr << "loaded " << responses.size() <<  " elements from "
+           << leftover_args.front() << endl;
+      if (leftover_args.size() > 1) {
+        vector<string> cfnames =
+            vector<string>(leftover_args.begin() + 1, leftover_args.end());
+        cerr << "loaded " << covariates.size() << " covariates from ";
+        for (size_t i=0; i<cfnames.size(); i++) cerr << cfnames[i] << "\t";
+        cerr << endl;
+      } else cerr << "no covariates found" << endl;
     }
 
     // if we're fitting only a single component, rather than a mixture..
@@ -616,7 +670,7 @@ main(int argc, const char* argv[]) {
         if (distType == "DEFAULT")
           distType = "ZeroTruncatedNegativeBinomial";
         FindPeaksSingleComponentSimple(VERBOSE, FITONLY, distType, modelfn,
-                                       sites, responses, ostrm);
+                                       sites, responses, pthresh, ostrm);
       } else {
         // more than one input file given, must be regression
         if (distType == "DEFAULT")
@@ -624,7 +678,7 @@ main(int argc, const char* argv[]) {
         FindPeaksSingleComponentRegression(VERBOSE, FITONLY,
                                            sites, responses, covariates,
                                            FittingMethod(fittingMethodStr),
-                                           distType, modelfn, ostrm);
+                                           distType, modelfn, pthresh, ostrm);
       }
     } else {
       // do the full mixture thing
