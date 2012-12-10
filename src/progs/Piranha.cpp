@@ -33,6 +33,7 @@
 #include <algorithm>
 #include <vector>
 #include <string>
+#include <map>
 
 // From piranha common
 #include "config.hpp"
@@ -40,7 +41,7 @@
 #include "TruncatedPoissonRegression.hpp"
 #include "PoissonRegression.hpp"
 #include "ZTNBRegression.hpp"
-//#include "CovariateList.hpp"
+#include "Utility.hpp"
 #include "DistributionMixtureModel.hpp"
 #include "RegressionMixtureModel.hpp"
 #include "FittingMethod.hpp"
@@ -69,6 +70,7 @@ using std::ofstream;
 using std::ostream;
 using std::stringstream;
 using std::tr1::unordered_map;
+using std::map;
 using std::transform;
 
 // if we have BAM support
@@ -274,16 +276,60 @@ loadResponses(const string &filename, vector<double> &response,
  * \param allResponses[in/out]
  * \param foregroundResponses[out]
  */
-void splitResponses(vector<double>& allResponses,
-                    vector<double>& foregroundResponses, const double thresh) {
-  const size_t N = allResponses.size();
-  const double INC = 1/((double)N);
+void splitResponses(vector<double> &allResponses,
+                    vector<GenomicRegion> &allSites,
+                    vector<double> &foregroundResponses,
+                    vector<GenomicRegion> &foregroundSites,
+                    const double thresh,
+                    const bool VERBOSE) {
+  // do nothing if the split puts everything into the background
+  if (thresh != 1) {
+    const size_t N = allResponses.size();
+    if (N != allSites.size()) {
+      stringstream ss;
+      ss << "Failed to split responses, sites and responses have different "
+            "dimension";
+      throw SMITHLABException(ss.str());
+    }
 
-  // first determine where to split
-  size_t relThresh = allResponses[N-1];
-  for (size_t i=0; i<N; i++) {
-    double p = i / (double) N;
+    // here we calculate what is the smallest response value such that <thresh>
+    // proportion of the responses are less than it (i.e. background)
+    double absThresh = thresh * N, soFar = 0, responseThresh=0;
+    map<double, size_t> hist = countItemsOrdered<double>(allResponses);
+    map<double, size_t>::iterator prev = hist.end();
+    for (map<double, size_t>::iterator v = hist.begin(); v != hist.end(); ++v) {
+      soFar += v->second;
+      if (soFar >= absThresh) {
+        if (prev == hist.end()) {
+          stringstream ss;
+          ss << "Failed to split responses, smallest response accounts for more "
+             << "than " << (thresh * 100) << "% of all responses. Try "
+             <<  "increasing the threshold";
+          throw SMITHLABException(ss.str());
+        }
+        responseThresh = prev->first;
+        break;
+      }
+      prev = v;
+    }
+    if (VERBOSE) cerr << "Selected foreground count-threshold as "
+                      << responseThresh << endl;
+
+    // now build a vector of the indices that go into the foreground
+    std::tr1::unordered_set<size_t> fg_indices;
+    for (size_t i=0; i<allResponses.size(); i++) {
+      if (allResponses[i] > responseThresh) fg_indices.insert(i);
+    }
+
+    // new we split the responses and the sites based on these indices
+    copyRemoveByIndex<double>(allResponses, foregroundResponses,
+                              fg_indices);
+    copyRemoveByIndex<GenomicRegion>(allSites, foregroundSites,
+                                     fg_indices);
   }
+
+  if (VERBOSE) cerr << "fg/bg split was " << foregroundResponses.size() << "/"
+                    << allResponses.size() << endl;
 }
 
 
@@ -472,22 +518,26 @@ FindPeaksSingleComponentRegression(const bool VERBOSE, const bool FITONLY,
 /**
  * \brief Use a single simple distribution to find peaks and output each
  *        input region with a p-value
- * \param VERBOSE   output additional run details to stderr if true
- * \param FITONLY   If true, just output the model, otherwise we
- *                  use the model to score the sites and output those
- * \param distType  the distribution type to use
- * \param modelfn   if not empty, load the model from this file rather than
- *                  fitting
- * \param sites     genomic regions representing the bins being considered
- * \param responses read counts for each of the sites
- * \param pThresh   output sites that meet this threshold on significance
- * \param ostrm     write regions to this output stream
+ * \param VERBOSE     output additional run details to stderr if true
+ * \param FITONLY     If true, just output the model, otherwise we
+ *                    use the model to score the sites and output those
+ * \param distType    the distribution type to use
+ * \param modelfn     if not empty, load the model from this file rather than
+ *                    fitting
+ * \param sites       genomic regions representing the bins being considered
+ * \param fgSites     TODO
+ * \param responses   read counts for each of the sites
+ * \param fgResponses TODO
+ * \param pThresh     output sites that meet this threshold on significance
+ * \param ostrm       write regions to this output stream
  */
 static void 
 FindPeaksSingleComponentSimple(const bool VERBOSE, const bool FITONLY,
                                const string &distType, const string &modelfn,
                                const vector<GenomicRegion> &sites,
+                               const vector<GenomicRegion> &fgSites,
                                const vector<double> &responses,
+                               const vector<double> &fgResponses,
                                const double pThresh,
                                ostream& ostrm) {
 
@@ -512,12 +562,28 @@ FindPeaksSingleComponentSimple(const bool VERBOSE, const bool FITONLY,
   if (FITONLY) {
     distro->save(ostrm);
   } else {
-    for (size_t i=0; i < n_sites; i++) {
-      const double p = distro->pvalue(responses[i]);
-      if (p <= pThresh) {
-        GenomicRegion tmp(sites[i]);
-        tmp.set_score(responses[i]);
-        ostrm << tmp << '\t' << p << endl;
+    size_t fg_index = 0, bg_index = 0;
+    while ((fg_index < fgSites.size()) || (bg_index < sites.size())) {
+      if ((fg_index >= fgSites.size()) ||
+          (sites[bg_index] < fgSites[fg_index])) {
+        // background site comes first; either because we ran out of
+        // foreground sites or because of ordering. Score and output it.
+        const double p = distro->pvalue(responses[bg_index]);
+        if (p <= pThresh) {
+          GenomicRegion tmp(sites[bg_index]);
+          tmp.set_score(responses[bg_index]);
+          ostrm << tmp << '\t' << p << endl;
+        }
+        bg_index += 1;
+      } else {
+        // foreground site comes first
+        const double p = distro->pvalue(fgResponses[fg_index]);
+        if (p <= pThresh) {
+          GenomicRegion tmp(fgSites[fg_index]);
+          tmp.set_score(fgResponses[fg_index]);
+          ostrm << tmp << '\t' << p << endl;
+        }
+        fg_index += 1;
       }
     }
   }
@@ -550,7 +616,7 @@ main(int argc, const char* argv[]) {
     size_t binSize = ALREADY_BINNED;
     
     /************************* COMMAND LINE OPTIONS **************************/
-    string about = "Piranha Version 1.1.3 -- A program for finding peaks in "
+    string about = "Piranha Version 1.2.0 -- A program for finding peaks in "
                    "high throughput RNA-protein interaction data (e.g. RIP- "
                    "and CLIP-Seq). Written by Philip J. Uren and "
                    "Andrew D. Smith. See README.TXT for further details";
@@ -614,10 +680,22 @@ main(int argc, const char* argv[]) {
     }
     /****************** END COMMAND LINE OPTIONS *****************/
     
-    // warn the user that this is a little silly, but let them do it anyway
+    // Check that the options the user picked all make sense
     if ((modelfn != "") && (FITONLY)) {
-      cerr << "warning: loading model from file, and not scoring input -- "
+      cerr << "WARNING: loading model from file, and not scoring input -- "
 	   << "will just copy model from input to output streams" << endl;
+    }
+    if ((bgThresh > 1) || (bgThresh < 0)) {
+      stringstream ss;
+      ss << "background threshold is out-of-range. Must be between 0 "
+         << "and 1 (inclusive). Found: " << bgThresh;
+      throw SMITHLABException(ss.str());
+    }
+    if ((pthresh > 1) || (pthresh < 0)) {
+      stringstream ss;
+      ss << "p-value threshold is out-of-range. Must be between 0 "
+         << "and 1 (inclusive). Found: " << pthresh;
+      throw SMITHLABException(ss.str());
     }
 
     // decide where our output is going, stdout or file?
@@ -669,8 +747,13 @@ main(int argc, const char* argv[]) {
         // just one file given, must be simple distribution
         if (distType == "DEFAULT")
           distType = "ZeroTruncatedNegativeBinomial";
+        vector<GenomicRegion> fgSites;
+        vector<double> fgResponses;
+        splitResponses(responses, sites, fgResponses, fgSites, bgThresh,
+                       VERBOSE);
         FindPeaksSingleComponentSimple(VERBOSE, FITONLY, distType, modelfn,
-                                       sites, responses, pthresh, ostrm);
+                                       sites, fgSites, responses, fgResponses,
+                                       pthresh, ostrm);
       } else {
         // more than one input file given, must be regression
         if (distType == "DEFAULT")

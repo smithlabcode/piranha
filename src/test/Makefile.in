@@ -64,7 +64,7 @@ GTEST_DIR = ../gtest
 
 # All tests produced by this Makefile.
 TESTS = TestPoisson TestZTP TestNegativeBinomial TestMatrix TestZTNB \
-        TestReadBinner
+        TestReadBinner TestUtility
 
 # Where to find the code..
 USER_DIR = ../common
@@ -156,7 +156,10 @@ TestZTNB : TestZTNB.o gtest_main.a \
 TestReadBinner : TestReadBinner.o gtest_main.a $(USER_DIR)/ReadBinner.o \
              $(SMITHLAB_CPP)/smithlab_utils.o $(SMITHLAB_CPP)/GenomicRegion.o 
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $^ -o $@ $(LIBS)
-	
+
+TestUtility : TestUtility.o gtest_main.a 
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $^ -o $@ $(LIBS)
+
 ########################## How to run all the tests ###########################
 .PHONY : test
 test : $(TESTS)

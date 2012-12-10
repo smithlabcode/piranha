@@ -9,7 +9,7 @@
   <test>
     <name> Binning test BAM ztnbr </name>
 	<command>
-	    ../../bin/Piranha -f -b 1 
+	    ../../bin/Piranha -f -b 1  
 		regressionTestInputs/zntbr_unbinned_response.bam 
 		regressionTestInputs/ztnbr_binning_cov1.bed 
 		regressionTestInputs/ztnbr_binning_cov2.bed
@@ -32,7 +32,7 @@
   <test>
   	<name> Binning test BED ztnbr pre-binned </name>
 	<command> 
-	    ../../bin/Piranha -f  
+	    ../../bin/Piranha -f -a 1
 		regressionTestInputs/zntbr_binned_response.bed 
 		regressionTestInputs/ztnbr_binning_cov1.bed 
 		regressionTestInputs/ztnbr_binning_cov2.bed
@@ -43,7 +43,7 @@
   <test>
     <name> Binning test BED </name>
 	<command> 
-		../../bin/Piranha -b 1 -f 
+		../../bin/Piranha -b 1 -f -a 1
 		regressionTestInputs/testPrianha_zntb_unbinned.bed
     </command>
 	<expected> regressionTestOutputs/ztnbBinningTestModelOutput.expected.stdout </expected>
@@ -53,7 +53,7 @@
   <test>
     <name> Binning test BAM </name>
 	<command>
-	  ../../bin/Piranha -b 1 -f 
+	  ../../bin/Piranha -b 1 -f -a 1
 	  regressionTestInputs/testPrianha_zntb_unbinned.bam
 	</command> 
     <expected> regressionTestOutputs/ztnbBinningTestModelOutput.expected.stdout </expected>
@@ -63,7 +63,7 @@
   <test>
     <name> Binning test BED pre-binned </name>
 	<command>
-	  ../../bin/Piranha -f 
+	  ../../bin/Piranha -f -a 1
 	  regressionTestInputs/testPrianha_zntb_binned.bed
 	</command>
 	<expected> regressionTestOutputs/ztnbBinningTestModelOutput.expected.stdout </expected>
@@ -72,7 +72,7 @@
   <test>
     <name> Simple ZTNB Test 1 </name>
     <command> 
-      ../../bin/Piranha -p 1 -d ZeroTruncatedNegativeBinomial 
+      ../../bin/Piranha -a 1 -p 1 -d ZeroTruncatedNegativeBinomial 
       regressionTestInputs/ztnbSimpleTest_response.dat 
     </command> 
     <expected> regressionTestOutputs/ztnbSimpleTest_output.expected </expected>
@@ -81,7 +81,7 @@
 	<test>
 		<name> Simple ZTNB Test 1, default sig. </name>
 		<command>
-		  ../../bin/Piranha -d ZeroTruncatedNegativeBinomial
+		  ../../bin/Piranha -a 1 -d ZeroTruncatedNegativeBinomial
 		  regressionTestInputs/ztnbSimpleTest_response.dat
 		</command>
 		<expected> regressionTestOutputs/ztnbSimpleTest_defaultSig_output.expected </expected>
@@ -90,7 +90,7 @@
   <test>
     <name> Simple ZTNB Test 2 </name>
     <command> 
-      ../../bin/Piranha -f -d ZeroTruncatedNegativeBinomial 
+      ../../bin/Piranha -a 1 -f -d ZeroTruncatedNegativeBinomial 
       regressionTestInputs/ztnbSimpleTest_response.dat 
     </command> 
     <expected> regressionTestOutputs/ztnbSimpleTest_output1.expected </expected>
@@ -99,7 +99,7 @@
   <test>
     <name> Simple ZTNB Test 3 </name>
     <command>
-		      ../../bin/Piranha -p 1 
+		      ../../bin/Piranha -a 1 -p 1 
 	        regressionTestInputs/ztnbSimpleTest2_response.dat
     </command>
     <expected> regressionTestOutputs/ztnbSimpleTest2_output.expected </expected>
@@ -108,7 +108,7 @@
   <test>
     <name> Simple NB Test </name>
       <command> 
-        ../../bin/Piranha -f -d NegativeBinomial 
+        ../../bin/Piranha -a 1 -f -d NegativeBinomial 
         regressionTestInputs/nbSimpleTest_response.dat 
       </command>
     <expected> regressionTestOutputs/nbSimpleTest_output.expected </expected>
@@ -117,7 +117,7 @@
   <test>
     <name> Simple Poisson Test 1 </name>
     <command> 
-      ../../bin/Piranha -d Poisson -p 1
+      ../../bin/Piranha -a 1 -d Poisson -p 1
       regressionTestInputs/PoissonSimpleTest_response.dat 
     </command>
     <expected> 
@@ -150,7 +150,7 @@
   <test>
     <name> Simple ZTP Test </name>
     <command>
-      ../../bin/Piranha -p 1 -d ZeroTruncatedPoisson 
+      ../../bin/Piranha -a 1 -p 1 -d ZeroTruncatedPoisson 
       regressionTestInputs/ZeroTruncatedPoissonSimpleTest_response.dat 
     </command>
     <expected>

@@ -6,7 +6,7 @@
                    | |    | | | | (_| | | | | | | | (_| | 
                    |_|    |_|_|  \__,_|_| |_|_| |_|\__,_|
                    **************************************
-                   *               V1.1.3               *
+                   *               V1.2.0               *
                    ************************************** 
                                         
 
@@ -166,27 +166,30 @@ For further options, run Piranha without any arguments, or see the section
 Usage: Piranha [OPTIONS] *.bed
 
 Options:
-  -o, -output            Name of output file, STDOUT if omitted 
-	-s, -sort              indicates that input is unsorted and Piranha should 
-	                       sort it for you
-  -b, -bin_size          indicates that input is raw reads and should be binned 
-                         into bins of this size 
-  -f, -fit               Fit only, output model to file 
-  -d, -dist              Distribution type. Currently supports Poisson, 
-                         NegativeBinomial, ZeroTruncatedPoisson, 
-                         ZeroTruncatedNegativeBinomial, 
-                         PoissonRegression, NegativeBinomialRegression, 
-                         ZeroTruncatedPoissonRegression, 
-                         ZeroTruncatedNegativeBinomialRegression 
-  -t, -fitMethod         component fitting method 
-  -m, -model             Use the specified model file instead of fitting to 
-                         input data 
-  -v, -VERBOSE           output additional messages about run to stderr if set 
-  -n, -no_normalisation  don't normalise covariates 
+  -o, -output             Name of output file, STDOUT if omitted 
+  -s, -sort               indicates that input is unsorted and Piranha should 
+                          sort it for you
+  -p, -p_threshold        significance threshold for sites 
+  -a, -background_thresh  indicates that this proportion of the lowest scores 
+                          should be considered the background. Default is 0.99
+  -b, -bin_size           indicates that input is raw reads and should be binned 
+                          into bins of this size 
+  -f, -fit                Fit only, output model to file 
+  -d, -dist               Distribution type. Currently supports Poisson, 
+                          NegativeBinomial, ZeroTruncatedPoisson, 
+                          ZeroTruncatedNegativeBinomial, 
+                          PoissonRegression, NegativeBinomialRegression, 
+                          ZeroTruncatedPoissonRegression, 
+                          ZeroTruncatedNegativeBinomialRegression 
+  -t, -fitMethod          component fitting method 
+  -m, -model              Use the specified model file instead of fitting to 
+                          input data 
+  -v, -VERBOSE            output additional messages about run to stderr if set 
+  -n, -no_normalisation   don't normalise covariates 
 
 Help options:
-  -?, -help              print this help message 
-      -about             print about message 
+  -?, -help               print this help message 
+      -about              print about message 
  
 
 
