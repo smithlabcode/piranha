@@ -48,6 +48,7 @@
 #include "ZTNB.hpp"
 #include "RegressionBuilder.hpp"
 #include "ReadBinner.hpp"
+#include "FDR.hpp"
 
 // From smithlab_cpp
 #include "smithlab_os.hpp"
@@ -518,21 +519,24 @@ FindPeaksSingleComponentRegression(const bool VERBOSE, const bool FITONLY,
 /**
  * \brief Use a single simple distribution to find peaks and output each
  *        input region with a p-value
- * \param VERBOSE     output additional run details to stderr if true
- * \param FITONLY     If true, just output the model, otherwise we
- *                    use the model to score the sites and output those
- * \param distType    the distribution type to use
- * \param modelfn     if not empty, load the model from this file rather than
- *                    fitting
- * \param sites       genomic regions representing the bins being considered
- * \param fgSites     TODO
- * \param responses   read counts for each of the sites
- * \param fgResponses TODO
+ * \param VERBOSE          output additional run details to stderr if true
+ * \param FITONLY          If true, just output the model, otherwise we
+ *                         use the model to score the sites and output those
+ * \param NO_PVAL_CORRECT  don't correct p-values for multiple hypothesis
+ *                         testing. By default we correct using B&H
+ * \param distType         the distribution type to use
+ * \param modelfn          if not empty, load the model from this file rather
+ *                         than fitting
+ * \param sites            genomic regions representing the bins being considered
+ * \param fgSites          TODO
+ * \param responses        read counts for each of the sites
+ * \param fgResponses      TODO
  * \param pThresh     output sites that meet this threshold on significance
  * \param ostrm       write regions to this output stream
  */
 static void 
 FindPeaksSingleComponentSimple(const bool VERBOSE, const bool FITONLY,
+                               const bool NO_PVAL_CORRECT,
                                const string &distType, const string &modelfn,
                                const vector<GenomicRegion> &sites,
                                const vector<GenomicRegion> &fgSites,
@@ -562,13 +566,25 @@ FindPeaksSingleComponentSimple(const bool VERBOSE, const bool FITONLY,
   if (FITONLY) {
     distro->save(ostrm);
   } else {
+    // we have to pre-compute all of the p-values so we can adjust them
+    // for multiple hypothesis testing
+    vector<double> fg_pvals, bg_pvals;
+    for (size_t i=0; i<responses.size(); i++)
+      bg_pvals.push_back(distro->pvalue(responses[i]));
+    for (size_t i=0; i<fgResponses.size(); i++)
+      fg_pvals.push_back(distro->pvalue(fgResponses[i]));
+    if (!NO_PVAL_CORRECT) {
+      FDR::correctP(fg_pvals);
+      FDR::correctP(bg_pvals);
+    }
+
     size_t fg_index = 0, bg_index = 0;
     while ((fg_index < fgSites.size()) || (bg_index < sites.size())) {
       if ((fg_index >= fgSites.size()) ||
           (sites[bg_index] < fgSites[fg_index])) {
         // background site comes first; either because we ran out of
         // foreground sites or because of ordering. Score and output it.
-        const double p = distro->pvalue(responses[bg_index]);
+        const double p = bg_pvals[bg_index];
         if (p <= pThresh) {
           GenomicRegion tmp(sites[bg_index]);
           tmp.set_score(responses[bg_index]);
@@ -577,7 +593,7 @@ FindPeaksSingleComponentSimple(const bool VERBOSE, const bool FITONLY,
         bg_index += 1;
       } else {
         // foreground site comes first
-        const double p = distro->pvalue(fgResponses[fg_index]);
+        const double p = fg_pvals[fg_index];
         if (p <= pThresh) {
           GenomicRegion tmp(fgSites[fg_index]);
           tmp.set_score(fgResponses[fg_index]);
@@ -607,6 +623,7 @@ main(int argc, const char* argv[]) {
     bool FITONLY = false;
     bool NO_NORMALISE_COVARS = false;
     bool SORT = false;
+    bool NO_PVAL_CORRECT = false;
 
     size_t numComponents = 1;
     string distType = "DEFAULT";
@@ -627,6 +644,10 @@ main(int argc, const char* argv[]) {
                       "Piranha should sort it for you", false, SORT);
     opt_parse.add_opt("p_threshold", 'p', "significance threshold for sites",
                       false, pthresh);
+    opt_parse.add_opt("no_pval_correct", 'c', "don't correct p-values for "
+                                              "multiple hypothesis testing. "
+                                              "We correct by default using B&H.",
+                      false, NO_PVAL_CORRECT);
     opt_parse.add_opt("background_thresh", 'a', "indicates that this "
                                                 "proportion of the lowest "
                                                 "scores should be considered "
@@ -751,9 +772,9 @@ main(int argc, const char* argv[]) {
         vector<double> fgResponses;
         splitResponses(responses, sites, fgResponses, fgSites, bgThresh,
                        VERBOSE);
-        FindPeaksSingleComponentSimple(VERBOSE, FITONLY, distType, modelfn,
-                                       sites, fgSites, responses, fgResponses,
-                                       pthresh, ostrm);
+        FindPeaksSingleComponentSimple(VERBOSE, FITONLY, NO_PVAL_CORRECT,
+                                       distType, modelfn, sites, fgSites,
+                                       responses, fgResponses, pthresh, ostrm);
       } else {
         // more than one input file given, must be regression
         if (distType == "DEFAULT")

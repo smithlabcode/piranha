@@ -66,7 +66,8 @@ Piranha : $(addprefix $(COMMON_DIR), \
 	LinearRegression.o Distribution.o \
 	TruncatedPoissonRegression.o VectorMath.o Matrix.o \
 	RegressionModel.o ZTP.o \
-	DistributionMixtureModel.o ZTNB.o GeneralisedLinearModel.o ReadBinner.o)
+	DistributionMixtureModel.o ZTNB.o GeneralisedLinearModel.o \
+	ReadBinner.o FDR.o)
 
 Simulate : $(addprefix $(SMITHLAB_CPP)/, GenomicRegion.o smithlab_os.o \
 	smithlab_utils.o OptionParser.o RNG.o)

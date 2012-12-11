@@ -72,7 +72,7 @@
   <test>
     <name> Simple ZTNB Test 1 </name>
     <command> 
-      ../../bin/Piranha -a 1 -p 1 -d ZeroTruncatedNegativeBinomial 
+      ../../bin/Piranha -c -a 1 -p 1 -d ZeroTruncatedNegativeBinomial 
       regressionTestInputs/ztnbSimpleTest_response.dat 
     </command> 
     <expected> regressionTestOutputs/ztnbSimpleTest_output.expected </expected>
@@ -81,10 +81,19 @@
 	<test>
 		<name> Simple ZTNB Test 1, default sig. </name>
 		<command>
-		  ../../bin/Piranha -a 1 -d ZeroTruncatedNegativeBinomial
+		  ../../bin/Piranha -c -a 1 -d ZeroTruncatedNegativeBinomial
 		  regressionTestInputs/ztnbSimpleTest_response.dat
 		</command>
 		<expected> regressionTestOutputs/ztnbSimpleTest_defaultSig_output.expected </expected>
+  </test>
+
+  <test>
+    <name> Simple ZTNB Test 2, corrected pvals </name>
+    <command>
+      ../../bin/Piranha -a 1 -d ZeroTruncatedNegativeBinomial
+      regressionTestInputs/ztnbSimpleTest2_response.dat
+    </command>
+    <expected> regressionTestOutputs/ztnbSimpleTest_correctedPvals_output.expected </expected>
   </test>
   
   <test>
@@ -99,7 +108,7 @@
   <test>
     <name> Simple ZTNB Test 3 </name>
     <command>
-		      ../../bin/Piranha -a 1 -p 1 
+		      ../../bin/Piranha -c -a 1 -p 1 
 	        regressionTestInputs/ztnbSimpleTest2_response.dat
     </command>
     <expected> regressionTestOutputs/ztnbSimpleTest2_output.expected </expected>
@@ -117,7 +126,7 @@
   <test>
     <name> Simple Poisson Test 1 </name>
     <command> 
-      ../../bin/Piranha -a 1 -d Poisson -p 1
+      ../../bin/Piranha -c -a 1 -d Poisson -p 1
       regressionTestInputs/PoissonSimpleTest_response.dat 
     </command>
     <expected> 
@@ -150,7 +159,7 @@
   <test>
     <name> Simple ZTP Test </name>
     <command>
-      ../../bin/Piranha -a 1 -p 1 -d ZeroTruncatedPoisson 
+      ../../bin/Piranha -c -a 1 -p 1 -d ZeroTruncatedPoisson 
       regressionTestInputs/ZeroTruncatedPoissonSimpleTest_response.dat 
     </command>
     <expected>

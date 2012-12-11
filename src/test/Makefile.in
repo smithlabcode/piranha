@@ -64,7 +64,7 @@ GTEST_DIR = ../gtest
 
 # All tests produced by this Makefile.
 TESTS = TestPoisson TestZTP TestNegativeBinomial TestMatrix TestZTNB \
-        TestReadBinner TestUtility
+        TestReadBinner TestUtility TestFDR
 
 # Where to find the code..
 USER_DIR = ../common
@@ -158,6 +158,9 @@ TestReadBinner : TestReadBinner.o gtest_main.a $(USER_DIR)/ReadBinner.o \
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $^ -o $@ $(LIBS)
 
 TestUtility : TestUtility.o gtest_main.a 
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $^ -o $@ $(LIBS)
+
+TestFDR : TestFDR.o $(USER_DIR)/FDR.o gtest_main.a
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $^ -o $@ $(LIBS)
 
 ########################## How to run all the tests ###########################
