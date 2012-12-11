@@ -187,7 +187,7 @@
   <test>
     <name> Poisson Regression Test 2 </name>
     <command> 
-      ../../bin/Piranha -p 1 -s -n -d PoissonRegression 
+      ../../bin/Piranha -c -p 1 -s -n -d PoissonRegression 
       regressionTestInputs/PoissonRegressionTest_response.dat 
       regressionTestInputs/PoissonRegressionTest_covariate1.dat 
       regressionTestInputs/PoissonRegressionTest_covariate2.dat 
@@ -245,7 +245,7 @@
   <test>
   	<name>NB Regression Test 2</name>
   	<command>
-	  ../../bin/Piranha -p 1 -s -d NegativeBinomialRegression
+	  ../../bin/Piranha -c -p 1 -s -d NegativeBinomialRegression
 	  regressionTestInputs/NBRegressionTest_response.dat
       regressionTestInputs/NBRegressionTest_covariate1.dat
       regressionTestInputs/NBRegressionTest_covariate2.dat
@@ -258,7 +258,7 @@
   <test>
     <name> ZTNB Regression Test 2 </name>
     <command>
-      ../../bin/Piranha -p 1 -s -d ZeroTruncatedNegativeBinomialRegression
+      ../../bin/Piranha -c -p 1 -s -d ZeroTruncatedNegativeBinomialRegression
       regressionTestInputs/ZTNBRegressionTest_response.dat
       regressionTestInputs/ZTNBRegressionTest_covariate1.dat
       regressionTestInputs/ZTNBRegressionTest_covariate2.dat
@@ -273,7 +273,7 @@
   <test>
     <name> ZTP Regression Test 2 </name>
     <command>
-      ../../bin/Piranha -p 1 -s -n -d ZeroTruncatedPoissonRegression
+      ../../bin/Piranha -c -p 1 -s -n -d ZeroTruncatedPoissonRegression
       regressionTestInputs/ZTPRegressionTest_response.dat
       regressionTestInputs/ZTPRegressionTest_covariate1.dat
       regressionTestInputs/ZTPRegressionTest_covariate2.dat
@@ -286,7 +286,7 @@
   <test>
     <name> ZTNB Regression Test 3 </name> 
 	<command> 
-	  ../../bin/Piranha -p 1 -d ZeroTruncatedNegativeBinomialRegression 
+	  ../../bin/Piranha -c -p 1 -d ZeroTruncatedNegativeBinomialRegression 
 	  regressionTestInputs/ZTNBRegressionTest3_response.dat
 	  regressionTestInputs/ZTNBRegressionTest3_covariate1.dat
 	</command>
@@ -303,7 +303,7 @@
   <test>
     <name> ZTNB Regression Test 4 </name>
     <command>
-      ../../bin/Piranha -p 1
+      ../../bin/Piranha -c -p 1
 	  regressionTestInputs/ZTNBRegressionTest4_response.dat
       regressionTestInputs/ZTNBRegressionTest4_covariate1.dat
 	</command>

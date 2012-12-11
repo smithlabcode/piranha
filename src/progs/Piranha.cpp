@@ -451,6 +451,7 @@ loadCovariates(const vector<string> &filenames,
  */
 static void
 FindPeaksSingleComponentRegression(const bool VERBOSE, const bool FITONLY,
+                                   const bool NO_PVAL_CORRECT,
                                    const vector<GenomicRegion> &sites,
                                    const vector<double> &responses,
                                    const vector< vector<double> > &covariates,
@@ -500,8 +501,18 @@ FindPeaksSingleComponentRegression(const bool VERBOSE, const bool FITONLY,
   if (FITONLY) {
     distro->save(ostrm);
   } else {
+    // we first compute all the p-values, because we probably want to correct
+    // them and to do that we need them all.
+    vector<double> pvals;
     for (size_t i=0; i < n_sites; i++) {
-      const double p = distro->pvalue(responses[i], covariates_t[i]);
+      pvals.push_back(distro->pvalue(responses[i], covariates_t[i]));
+    }
+    if (!NO_PVAL_CORRECT) {
+      FDR::correctP(pvals);
+    }
+
+    for (size_t i=0; i < n_sites; i++) {
+      const double p = pvals[i];
       if (p <= pThresh) {
         GenomicRegion tmp(sites[i]);
         tmp.set_score(responses[i]);
@@ -779,7 +790,12 @@ main(int argc, const char* argv[]) {
         // more than one input file given, must be regression
         if (distType == "DEFAULT")
           distType = "ZeroTruncatedNegativeBinomialRegression";
-        FindPeaksSingleComponentRegression(VERBOSE, FITONLY,
+        /*vector<GenomicRegion> fgSites;
+        vector<double> fgResponses;
+        vector< vector<double> > fgCovariates;
+        splitResponsesAndCovariates(responses, sites, covariates, fgResponses,
+                                    fgSites, fgCovariates, bgThresh, VERBOSE);*/
+        FindPeaksSingleComponentRegression(VERBOSE, FITONLY, NO_PVAL_CORRECT,
                                            sites, responses, covariates,
                                            FittingMethod(fittingMethodStr),
                                            distType, modelfn, pthresh, ostrm);
