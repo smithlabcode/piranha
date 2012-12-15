@@ -344,12 +344,19 @@ void splitResponses(vector<double> &allResponses,
  *                        covariate files.
  * \param covariates[out] A matrix M which will be filled in such that M[i][j]
  *                        is the value of the ith covariate for the jth bin.
- * \param NORMALISE[in]   if true (the default), we normalise all covariate
- *                        values so they are between zero and one (exclusive).
+ * \param binSize[in]     if we need to bin the covariate, what is the bin size?
+ *                        This will cause the covariates to be treated as a
+ *                        set of reads basically. Can be set to ALREADY_BINNED
+ *                        if no binning should be done (default).
  * \param SORT[in]        The input needs to be sorted; if this is true, we
  *                        sort the input ourselves (faster to leave this false
  *                        and just have the regions pre-sorted though)
+ * \param LOG[in]         transform covariate values into log (must not
+ *                        contain any zeros)
+ * \param NORMALISE[in]   if true (the default), we normalise all covariate
+ *                        values so they are between zero and one (exclusive).
  * \param VERBOSE[in]     if true, print status messages to stderr
+ *
  * \throws SMITHLABException if there is any response bin missing a covariate
  *                           bin.
  */
@@ -357,7 +364,9 @@ static void
 loadCovariates(const vector<string> &filenames,
                const vector<GenomicRegion> &sites,
                vector<vector<double> > &covariates,
-               const bool SORT = false,
+               const size_t binSize = ALREADY_BINNED,
+               const bool SORT=false,
+               const bool LOG=false,
                const bool NORMALISE_COVARS=true,
                const bool VERBOSE=false) {
   if (filenames.size() <= 0) {
@@ -390,7 +399,19 @@ loadCovariates(const vector<string> &filenames,
       cerr << "loaded " << covTmp.size() << " elements from "
            << filenames[i] << endl;
 
-    // cry if it doesn't match what we expect
+    // now, do we need to bin the covariate?
+    // if we're binning, we'll add missing bins as well
+    if (binSize != ALREADY_BINNED) {
+      vector<GenomicRegion> binned;
+      ReadBinner b(binSize);
+      b.binReads(covTmp, binned, sites, 1);
+      swap(binned, covTmp);
+    }
+
+    // cry if the sizes don't match what we expect -- we assume from here
+    // on in that there are at least as many covariate values as sites.
+    // TODO: I'm not sure this is needed, given the checks in the block of
+    //       code below.
     if (covTmp.size() < sites.size()) {
       stringstream ss;
       ss << "failed loading covariate from " << filenames[i] << ". Reason: "
@@ -635,13 +656,16 @@ main(int argc, const char* argv[]) {
     bool NO_NORMALISE_COVARS = false;
     bool SORT = false;
     bool NO_PVAL_CORRECT = false;
+    bool LOG_COVARS = false;
 
     size_t numComponents = 1;
     string distType = "DEFAULT";
     double pthresh = DEFAULT_PTHRESH;
     double bgThresh = DEFAULT_BGTHRESH;
     string fittingMethodStr = defaultFittingMethod.toString();
-    size_t binSize = ALREADY_BINNED;
+    size_t binSize_response = ALREADY_BINNED;
+    size_t binSize_covars = ALREADY_BINNED;
+    size_t binSize_both = ALREADY_BINNED;
     
     /************************* COMMAND LINE OPTIONS **************************/
     string about = "Piranha Version 1.2.0 -- A program for finding peaks in "
@@ -665,9 +689,17 @@ main(int argc, const char* argv[]) {
                                                 "the background. Default is "
                                                 "0.99",
                       false, bgThresh);
-    opt_parse.add_opt("bin_size", 'b', "indicates that input is raw reads and "
-                      "should be binned into bins of this size",
-                      false, binSize);
+    opt_parse.add_opt("bin_size_reponse", 'b', "indicates that the response "
+                                       "(first input file) is raw reads and "
+                                       "should be binned into bins of this size",
+                      false, binSize_response);
+    opt_parse.add_opt("bin_size_covars", 'i', "indicates that the covariates "
+                                              "(all except first file) are "
+                                              "raw reads and should be binned "
+                                              "into bins of this size",
+                      false, binSize_covars);
+    opt_parse.add_opt("bin_size_both", 'z', "synonymous with -b x -i x for any x",
+                      false, binSize_both);
     opt_parse.add_opt("fit", 'f', "Fit only, output model to file", 
                       false, FITONLY);
     opt_parse.add_opt("dist", 'd', "Distribution type. Currently supports "
@@ -729,6 +761,16 @@ main(int argc, const char* argv[]) {
          << "and 1 (inclusive). Found: " << pthresh;
       throw SMITHLABException(ss.str());
     }
+    if (binSize_both != ALREADY_BINNED) {
+      if ((binSize_response != ALREADY_BINNED) ||
+          (binSize_covars != ALREADY_BINNED)) {
+        stringstream ss;
+        ss << "the -z option is mutually exclusive with -b and -i options";
+        throw SMITHLABException(ss.str());
+      }
+      binSize_response = binSize_both;
+      binSize_covars = binSize_both;
+    }
 
     // decide where our output is going, stdout or file?
     std::ofstream of;
@@ -739,11 +781,13 @@ main(int argc, const char* argv[]) {
     vector<GenomicRegion> sites;
     vector<double> responses;
     vector< vector<double> > covariates;
-    loadResponses(leftover_args.front(), responses, sites, binSize, SORT);
+    loadResponses(leftover_args.front(), responses, sites,
+                  binSize_response, SORT);
     if (leftover_args.size() > 1) {
       vector<string> cfnames =
           vector<string>(leftover_args.begin() + 1, leftover_args.end());
-      loadCovariates(cfnames, sites, covariates, SORT, !NO_NORMALISE_COVARS);
+      loadCovariates(cfnames, sites, covariates, binSize_covars, SORT,
+                     LOG_COVARS, !NO_NORMALISE_COVARS, VERBOSE);
     }
 
     // tell the user what options were set and what files we found
@@ -752,8 +796,19 @@ main(int argc, const char* argv[]) {
       cerr << "Significance threshold: " << pthresh << endl;
       if (!outfn.empty()) cerr << "writing output to " << outfn << endl;
       else cerr << "writing output to stdout" << endl;
-      if (binSize == ALREADY_BINNED) cerr << "input is already binned" << endl;
-      else cerr << "binning input into bins of size " << binSize << endl;
+
+      // binning our data
+      if (binSize_response == ALREADY_BINNED)
+        cerr << "responses are already binned" << endl;
+      else
+        cerr << "binning responses into bins of size "
+             << binSize_response << endl;
+      if (binSize_covars == ALREADY_BINNED)
+        cerr << "covariates are already binned" << endl;
+      else
+        cerr << "binning covariates into bins of size "
+             << binSize_response << endl;
+
       if (FITONLY) cerr << "Not scoring input regions" << endl;
       else cerr << "scoring input regions" << endl;
       if (modelfn != "") cerr << "loading model from " << modelfn << endl;

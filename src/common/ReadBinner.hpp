@@ -1,5 +1,5 @@
 /**
-  \file ReadBinner.hpp
+  \file  ReadBinner.hpp
   \brief Declares the ReadBinner class, which takes provides functionality
          for taking collections of sequencing reads and collecting them into
          bins
@@ -45,8 +45,20 @@ class ReadBinner {
 public:
   ReadBinner(size_t bsize) : binSize(bsize) {};
   void binReads(const std::vector<GenomicRegion> &reads,
-                      std::vector<GenomicRegion> &bins) const;
+                      std::vector<GenomicRegion> &bins,
+                      const size_t pseudoCount=0) const;
+  void binReads(const std::vector<GenomicRegion> &reads,
+                      std::vector<GenomicRegion> &bins,
+                const std::vector<GenomicRegion> &requiredBins,
+                const size_t pseudoCount=0) const;
 private:
+  void binChromosome(const std::vector<GenomicRegion> &reads,
+                     std::vector<GenomicRegion> &bins,
+                     const size_t pseudoCount=0) const;
+  void binChromosome(const std::vector<GenomicRegion> &reads,
+                     std::vector<GenomicRegion> &bins,
+                     const std::vector<GenomicRegion> &requiredBins,
+                     const size_t pseudoCount=0) const;
   size_t binSize;
 };
 

@@ -72,3 +72,54 @@ TEST(ReadBinnerTest, testSingleNucBin) {
   }
 }
 
+/**
+ * \brief test binning reads into two nucleotide bins where we require
+ *        some bins to exist even if they have zero read-counts, and
+ *        adding pseudo-count of 1 to all accepted bins
+ */
+TEST(ReadBinnerTest, testTwoNucBin_require) {
+  vector<GenomicRegion> input;
+  input.push_back(GenomicRegion("chr1", 2, 5,  "X", 0, '+'));
+  input.push_back(GenomicRegion("chr1", 3, 5,  "X", 0, '+'));
+  input.push_back(GenomicRegion("chr1", 5, 7,  "X", 0, '+'));
+  input.push_back(GenomicRegion("chr1", 6, 8,  "X", 0, '+'));
+  input.push_back(GenomicRegion("chr1", 9, 11, "X", 0, '+'));
+  input.push_back(GenomicRegion("chr2", 5, 7,  "X", 0, '+'));
+  input.push_back(GenomicRegion("chr2", 6, 7,  "X", 0, '+'));
+  input.push_back(GenomicRegion("chr2", 6, 8,  "X", 0, '+'));
+  input.push_back(GenomicRegion("chr4", 0, 5,  "X", 0, '+'));
+
+  vector<GenomicRegion> requiredBins;
+  requiredBins.push_back(GenomicRegion("chr1", 0,  2,  "X", 0, '+'));
+  requiredBins.push_back(GenomicRegion("chr1", 6,  8,  "X", 0, '+'));
+  requiredBins.push_back(GenomicRegion("chr1", 10, 12, "X", 0, '+'));
+  requiredBins.push_back(GenomicRegion("chr2", 0,  2,  "X", 0, '+'));
+  requiredBins.push_back(GenomicRegion("chr2", 6,  8,  "X", 0, '+'));
+  requiredBins.push_back(GenomicRegion("chr2", 8,  10, "X", 0, '+'));
+  requiredBins.push_back(GenomicRegion("chr3", 8,  10, "X", 0, '+'));
+
+  vector<GenomicRegion> expect;
+  expect.push_back(GenomicRegion("chr1", 0,  2,  "X", 1, '+'));
+  expect.push_back(GenomicRegion("chr1", 2,  4,  "X", 3, '+'));
+  expect.push_back(GenomicRegion("chr1", 4,  6,  "X", 2, '+'));
+  expect.push_back(GenomicRegion("chr1", 6,  8,  "X", 2, '+'));
+  expect.push_back(GenomicRegion("chr1", 8,  10, "X", 2, '+'));
+  expect.push_back(GenomicRegion("chr1", 10, 12, "X", 1, '+'));
+  expect.push_back(GenomicRegion("chr2", 0,  2,  "X", 1, '+'));
+  expect.push_back(GenomicRegion("chr2", 4,  6,  "X", 2, '+'));
+  expect.push_back(GenomicRegion("chr2", 6,  8,  "X", 3, '+'));
+  expect.push_back(GenomicRegion("chr2", 8,  10, "X", 1, '+'));
+  expect.push_back(GenomicRegion("chr3", 8,  10, "X", 1, '+'));
+  expect.push_back(GenomicRegion("chr4", 0,  2,  "X", 2, '+'));
+
+  vector<GenomicRegion> got;
+  ReadBinner r(2);
+  r.binReads(input, got, requiredBins, 1);
+
+  EXPECT_EQ(got.size(), expect.size());
+  if (got.size(), expect.size()) {
+    for (size_t i = 0; i < expect.size(); i++) {
+      EXPECT_EQ(expect[i], got[i]);
+    }
+  }
+}
