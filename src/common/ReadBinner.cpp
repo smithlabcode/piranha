@@ -52,6 +52,7 @@ using std::string;
 using std::vector;
 using std::stringstream;
 
+
 /**
  * \brief Count the number of reads falling into each equally sized bin
  *        from the start of every chromosome. Bins with zero reads are
@@ -71,14 +72,18 @@ ReadBinner::binReads(const vector<GenomicRegion> &reads,
     throw SMITHLABException(ss.str());
   }
 
+  // note that splitting by chroms will automatically check that the reads
+  // are sorted, and the post-condition is that chroms are in order and
+  // each read within the chrom is in order
   bins.clear();
   vector<vector<GenomicRegion> > separated_by_chrom;
-  separate_chromosomes(reads, separated_by_chrom);
+  splitByChrom_sorted(reads, separated_by_chrom);
 
   for (size_t i = 0; i < separated_by_chrom.size(); ++i) {
     binChromosome(separated_by_chrom[i], bins, pseudoCount);
   }
 }
+
 
 /**
  * \brief Count the number of reads falling into each equally sized bin
@@ -103,10 +108,13 @@ ReadBinner::binReads(const vector<GenomicRegion> &reads,
     throw SMITHLABException(ss.str());
   }
 
+  // note that splitting by chroms will automatically check that the reads
+  // are sorted, and the post-condition is that chroms are in order and
+  // each read within the chrom is in order. Ditto for required bins.
   bins.clear();
   vector<vector<GenomicRegion> > separated_by_chrom, required_by_chrom;
-  separate_chromosomes(reads, separated_by_chrom);
-  separate_chromosomes(requiredBins, required_by_chrom);
+  splitByChrom_sorted(reads, separated_by_chrom);
+  splitByChrom_sorted(requiredBins, required_by_chrom);
 
   size_t readsChromIdx = 0, requiredChromIdx = 0;
   while ((readsChromIdx < separated_by_chrom.size()) ||
@@ -148,15 +156,17 @@ ReadBinner::binReads(const vector<GenomicRegion> &reads,
 }
 
 
-
 /**
  * \brief                   Bin reads on a given chromosome
  * \param reads[IN]         Reads to be binned. Must all be on the same chrom
+ *                          and must be sorted
  * \param bins[OUT]         Vector to add new bins to. Won't be cleared, so
  *                          can be used to accumulate bins from multiple calls
  * \param pseudoCount[IN]   A pseudo count to add to each bin that is accepted
  *
- * TODO There is no check for correct sorting order!
+ * Note that there is no check for correct sorting order. This is a private
+ * member function, and we trust the other calling functions to provide sorted
+ * data.
  */
 void
 ReadBinner::binChromosome(const vector<GenomicRegion> &reads,
@@ -191,9 +201,19 @@ ReadBinner::binChromosome(const vector<GenomicRegion> &reads,
 
 
 /**
- * \brief TODO
+ * \brief                   Bin reads on a given chromosome
+ * \param reads[IN]         Reads to be binned. Must all be on the same chrom
+ *                          and must be sorted
+ * \param bins[OUT]         Vector to add new bins to. Won't be cleared, so
+ *                          can be used to accumulate bins from multiple calls
+ * \param requiredBins[IN]  Bins that must be in the output, even if they
+ *                          contained no reads. Must be sorted, must be on same
+ *                          chrom as the input reads.
+ * \param pseudoCount[IN]   A pseudo count to add to each bin that is accepted
  *
- * TODO There is no check for correct sorting order!
+ * Note that there is no check for correct sorting order. This is a private
+ * member function, and we trust the other calling functions to provide sorted
+ * data.
  */
 void
 ReadBinner::binChromosome(const vector<GenomicRegion> &reads,
@@ -274,5 +294,37 @@ ReadBinner::binChromosome(const vector<GenomicRegion> &reads,
     }
   }
 }
+
+
+/**
+ * \brief Given a vector of genomic regions, split into a vector of vector
+ *        where each vector contains only reads from a single chrom. Output
+ *        vectors will be arrnged in sorted order (i.e chroms are in order)
+ *        and each vector has regions in order for its chrom.
+ * \param input[IN] genomic regions to split. Must be sorted
+ * \param res[OUT]  output split regions
+ * \throws SMITHLABException if regions are not sorted
+ */
+void
+ReadBinner::splitByChrom_sorted(const vector<GenomicRegion> &input,
+                                vector< vector<GenomicRegion> > &res) const {
+  bool first = true;
+  string currentChrom;
+  for (size_t i=0; i<input.size(); i++) {
+    if (!first && input[i].get_chrom() < currentChrom) {
+      stringstream ss;
+      ss << "binning reads failed. Reason: binChromosome called with "
+         << "reads from multiple chromosomes";
+      throw SMITHLABException(ss.str());
+    }
+    if (first || (currentChrom != input[i].get_chrom())) {
+      res.push_back(vector<GenomicRegion>());
+      currentChrom = input[i].get_chrom();
+    }
+    res.back().push_back(input[i]);
+    if (first) first = false;
+  }
+}
+
 
 

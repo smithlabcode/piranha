@@ -123,3 +123,134 @@ TEST(ReadBinnerTest, testTwoNucBin_require) {
     }
   }
 }
+
+/**
+ * \brief Another test for the binning of reads -- this one exercises the
+ *        splitting of chromosomes, which had a bug in an earlier version.
+ */
+TEST(ReadBinnerTest, testSplitByChromBug) {
+
+  // responses -- define the required bins. Binsize is 50
+  vector<GenomicRegion> input;
+  input.push_back(GenomicRegion("chr2" "\t" "61719585"  "\t" "61719616"  "\t"
+                                "X" "\t" "0" "\t" "+"));
+  input.push_back(GenomicRegion("chr2" "\t" "61719701"  "\t" "61719719"  "\t"
+                                "X" "\t" "0" "\t" "+"));
+  input.push_back(GenomicRegion("chr5" "\t" "131927086" "\t" "131927098" "\t"
+                                "X" "\t" "0" "\t" "-"));
+  input.push_back(GenomicRegion("chr5" "\t" "131927568" "\t" "131927605" "\t"
+                                "X" "\t" "0" "\t" "-"));
+  input.push_back(GenomicRegion("chr6" "\t" "31603521"  "\t" "31603526"  "\t"
+                                "X" "\t" "0" "\t" "-"));
+  input.push_back(GenomicRegion("chr6" "\t" "31603743"  "\t" "31603787"  "\t"
+                                "X" "\t" "0" "\t" "-"));
+  input.push_back(GenomicRegion("chr3" "\t" "197677833" "\t" "197677849" "\t"
+                                "X" "\t" "0" "\t" "+"));
+  input.push_back(GenomicRegion("chr3" "\t" "197678029" "\t" "197678062" "\t"
+                                "X" "\t" "0" "\t" "+"));
+  input.push_back(GenomicRegion("chr1" "\t" "150939919" "\t" "150939960" "\t"
+                                "X" "\t" "0" "\t" "-"));
+  input.push_back(GenomicRegion("chr1" "\t" "150940139" "\t" "150940147" "\t"
+                                "X" "\t" "0" "\t" "-"));
+
+  // covars -- are the things we're binning
+  vector<GenomicRegion> covar;
+  covar.push_back(GenomicRegion("chr3"  "\t" "52730293"  "\t" "52730334"  "\t"
+                                "X" "\t" "0" "\t" "+"));
+  covar.push_back(GenomicRegion("chr3"  "\t" "52730557"  "\t" "52730565"  "\t"
+                                "X" "\t" "0" "\t" "+"));
+  covar.push_back(GenomicRegion("chr3"  "\t" "52562926"  "\t" "52562951"  "\t"
+                                "X" "\t" "0" "\t" "+"));
+  covar.push_back(GenomicRegion("chr3"  "\t" "52563165"  "\t" "52563189"  "\t"
+                                "X" "\t" "0" "\t" "+"));
+  covar.push_back(GenomicRegion("chr1"  "\t" "223933103" "\t" "223933141" "\t"
+                                "X" "\t" "0" "\t" "-"));
+  covar.push_back(GenomicRegion("chr1"  "\t" "223934698" "\t" "223934709" "\t"
+                                "X" "\t" "0" "\t" "-"));
+  covar.push_back(GenomicRegion("chr11" "\t" "17332788"  "\t" "17332830"  "\t"
+                                "X" "\t" "0" "\t" "+"));
+  covar.push_back(GenomicRegion("chr11" "\t" "17333418"  "\t" "17333425"  "\t"
+                                "X" "\t" "0" "\t" "+"));
+  covar.push_back(GenomicRegion("chrX"  "\t" "47085420"  "\t" "47085426"  "\t"
+                                "X" "\t" "0" "\t" "+"));
+  covar.push_back(GenomicRegion("chrX"  "\t" "47085677"  "\t" "47085720"  "\t"
+                                "X" "\t" "0" "\t" "+"));
+
+  // Expected required bins
+  vector<GenomicRegion> expectReq;
+  expectReq.push_back(GenomicRegion("chr1"  "\t" "150939900"  "\t" "150939950"
+                                    "\t" "X"  "\t" "1"  "\t" "+"));
+  expectReq.push_back(GenomicRegion("chr1"  "\t" "150940100"  "\t" "150940150"
+                                    "\t" "X"  "\t" "1"  "\t" "+"));
+  expectReq.push_back(GenomicRegion("chr2"  "\t" "61719550"   "\t" "61719600"
+                                    "\t" "X"  "\t" "1"  "\t" "+"));
+  expectReq.push_back(GenomicRegion("chr2"  "\t" "61719700"   "\t" "61719750"
+                                    "\t" "X"  "\t" "1"  "\t" "+"));
+  expectReq.push_back(GenomicRegion("chr3"  "\t" "197677800"  "\t" "197677850"
+                                    "\t" "X"  "\t" "1"  "\t" "+"));
+  expectReq.push_back(GenomicRegion("chr3"  "\t" "197678000"  "\t" "197678050"
+                                    "\t" "X"  "\t" "1"  "\t" "+"));
+  expectReq.push_back(GenomicRegion("chr5"  "\t" "131927050"  "\t" "131927100"
+                                    "\t" "X"  "\t" "1"  "\t" "+"));
+  expectReq.push_back(GenomicRegion("chr5"  "\t" "131927550"  "\t" "131927600"
+                                    "\t" "X"  "\t" "1"  "\t" "+"));
+  expectReq.push_back(GenomicRegion("chr6"  "\t" "31603500"   "\t" "31603550"
+                                    "\t" "X"  "\t" "1"  "\t" "+"));
+  expectReq.push_back(GenomicRegion("chr6"  "\t" "31603700"   "\t" "31603750"
+                                    "\t" "X"  "\t" "1"  "\t" "+"));
+
+  // Expected covariate binning results
+  vector<GenomicRegion> expectCovarBinned;
+  expectCovarBinned.push_back(GenomicRegion("chr1" "\t" "150939900" "\t"
+                                     "150939950" "\t" "X"  "\t" "1"  "\t" "+"));
+  expectCovarBinned.push_back(GenomicRegion("chr1" "\t" "150940100" "\t"
+                                     "150940150" "\t" "X"  "\t" "1"  "\t" "+"));
+  expectCovarBinned.push_back(GenomicRegion("chr1" "\t" "223933100" "\t"
+                                     "223933150" "\t" "X"  "\t" "2"  "\t" "+"));
+  expectCovarBinned.push_back(GenomicRegion("chr1" "\t" "223934650" "\t"
+                                     "223934700" "\t" "X"  "\t" "2"  "\t" "+"));
+  expectCovarBinned.push_back(GenomicRegion("chr11" "\t" "17332750" "\t"
+                                     "17332800"  "\t" "X"  "\t" "2"  "\t" "+"));
+  expectCovarBinned.push_back(GenomicRegion("chr11" "\t" "17333400" "\t"
+                                     "17333450"  "\t" "X"  "\t" "2"  "\t" "+"));
+  expectCovarBinned.push_back(GenomicRegion("chr2" "\t" "61719550"  "\t"
+                                     "61719600"  "\t" "X"  "\t" "1"  "\t" "+"));
+  expectCovarBinned.push_back(GenomicRegion("chr2" "\t" "61719700"  "\t"
+                                     "61719750"  "\t" "X"  "\t" "1"  "\t" "+"));
+  expectCovarBinned.push_back(GenomicRegion("chr3" "\t" "52562900"  "\t"
+                                     "52562950"  "\t" "X"  "\t" "2"  "\t" "+"));
+  expectCovarBinned.push_back(GenomicRegion("chr3" "\t" "52563150"  "\t"
+                                     "52563200"  "\t" "X"  "\t" "2"  "\t" "+"));
+  expectCovarBinned.push_back(GenomicRegion("chr3" "\t" "52730250"  "\t"
+                                     "52730300"  "\t" "X"  "\t" "2"  "\t" "+"));
+  expectCovarBinned.push_back(GenomicRegion("chr3" "\t" "52730550"  "\t"
+                                     "52730600"  "\t" "X"  "\t" "2"  "\t" "+"));
+  expectCovarBinned.push_back(GenomicRegion("chr3" "\t" "197677800" "\t"
+                                     "197677850" "\t" "X"  "\t" "1"  "\t" "+"));
+  expectCovarBinned.push_back(GenomicRegion("chr3" "\t" "197678000" "\t"
+                                     "197678050" "\t" "X"  "\t" "1"  "\t" "+"));
+  expectCovarBinned.push_back(GenomicRegion("chr5" "\t" "131927050" "\t"
+                                     "131927100" "\t" "X"  "\t" "1"  "\t" "+"));
+  expectCovarBinned.push_back(GenomicRegion("chr5" "\t" "131927550" "\t"
+                                     "131927600" "\t" "X"  "\t" "1"  "\t" "+"));
+  expectCovarBinned.push_back(GenomicRegion("chr6" "\t" "31603500"  "\t"
+                                     "31603550"  "\t" "X"  "\t" "1"  "\t" "+"));
+  expectCovarBinned.push_back(GenomicRegion("chr6" "\t" "31603700"  "\t"
+                                     "31603750"  "\t" "X"  "\t" "1"  "\t" "+"));
+  expectCovarBinned.push_back(GenomicRegion("chrX" "\t" "47085400"  "\t"
+                                     "47085450"  "\t" "X"  "\t" "2"  "\t" "+"));
+  expectCovarBinned.push_back(GenomicRegion("chrX" "\t" "47085650"  "\t"
+                                     "47085700"  "\t" "X"  "\t" "2"  "\t" "+"));
+
+  std::sort(input.begin(), input.end());
+  std::sort(covar.begin(), covar.end());
+
+  vector<GenomicRegion> gotBinnedResponses;
+  ReadBinner r(50);
+  r.binReads(input, gotBinnedResponses, 0);
+  EXPECT_EQ(gotBinnedResponses, expectReq);
+
+  vector<GenomicRegion> gotCovarBinned;
+  r.binReads(covar, gotCovarBinned, gotBinnedResponses, 1);
+  EXPECT_EQ(gotCovarBinned, expectCovarBinned);
+}

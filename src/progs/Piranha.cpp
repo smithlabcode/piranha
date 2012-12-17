@@ -402,9 +402,11 @@ loadCovariates(const vector<string> &filenames,
     // now, do we need to bin the covariate?
     // if we're binning, we'll add missing bins as well
     if (binSize != ALREADY_BINNED) {
+      cerr << "binning" << endl;
       vector<GenomicRegion> binned;
       ReadBinner b(binSize);
       b.binReads(covTmp, binned, sites, 1);
+      for (size_t n=0; n<binned.size(); n++) cerr << binned[n] << endl;
       swap(binned, covTmp);
     }
 

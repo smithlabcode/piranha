@@ -59,6 +59,8 @@ private:
                      std::vector<GenomicRegion> &bins,
                      const std::vector<GenomicRegion> &requiredBins,
                      const size_t pseudoCount=0) const;
+  void splitByChrom_sorted(const std::vector<GenomicRegion> &input,
+                           std::vector< std::vector<GenomicRegion> > &res) const;
   size_t binSize;
 };
 
