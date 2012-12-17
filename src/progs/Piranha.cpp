@@ -455,6 +455,26 @@ loadCovariates(const vector<string> &filenames,
       }
     }
   }
+
+  if (LOG) {
+    for (size_t i = 0; i < covariates.size(); i++) {
+      for (size_t j = 0; j < covariates[i].size(); j++) {
+        if (covariates[i][j] == 0) {
+          stringstream ss;
+          ss << "can't take log of covariates, some values at zero";
+          throw SMITHLABException(ss.str());
+        }
+        // TODO fix magic number
+        else if (covariates[i][j] == 1) covariates[i][j] = 0.00001;
+        else {
+          covariates[i][j] = log(covariates[i][j]);
+          // avoid having anything at exactly 0 or 1
+          if (covariates[i][j] == 0) covariates[i][j] = 0.01;
+          if (covariates[i][j] == 1) covariates[i][j] = 0.99;
+        }
+      }
+    }
+  }
 }
 
 /**
@@ -722,6 +742,8 @@ main(int argc, const char* argv[]) {
                       "to stderr if set", false, VERBOSE);
     opt_parse.add_opt("no_normalisation", 'n', "don't normalise covariates",
                       false, NO_NORMALISE_COVARS);
+    opt_parse.add_opt("log_covars", 'l', "convert covariates to log scale",
+                      false, LOG_COVARS);
 
     vector<string> leftover_args;
     opt_parse.parse(argc, argv, leftover_args);
@@ -771,6 +793,11 @@ main(int argc, const char* argv[]) {
       }
       binSize_response = binSize_both;
       binSize_covars = binSize_both;
+    }
+    if (LOG_COVARS && !NO_NORMALISE_COVARS) {
+      cerr << "WARNING: normalisation and log-conversion of covariates are "
+           << "mutually exclusive. Ignoring normalisation flag" << endl;
+      NO_NORMALISE_COVARS = true;
     }
 
     // decide where our output is going, stdout or file?
