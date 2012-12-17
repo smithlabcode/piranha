@@ -406,7 +406,6 @@ loadCovariates(const vector<string> &filenames,
       vector<GenomicRegion> binned;
       ReadBinner b(binSize);
       b.binReads(covTmp, binned, sites, 1);
-      for (size_t n=0; n<binned.size(); n++) cerr << binned[n] << endl;
       swap(binned, covTmp);
     }
 
