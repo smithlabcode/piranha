@@ -277,7 +277,8 @@ loadResponses(const string &filename, vector<double> &response,
  * \param allResponses[in/out]
  * \param foregroundResponses[out]
  */
-void splitResponses(vector<double> &allResponses,
+static void
+splitResponses(vector<double> &allResponses,
                     vector<GenomicRegion> &allSites,
                     vector<double> &foregroundResponses,
                     vector<GenomicRegion> &foregroundSites,
@@ -333,6 +334,74 @@ void splitResponses(vector<double> &allResponses,
                     << allResponses.size() << endl;
 }
 
+
+/**
+ * \brief TODO
+ * \param ...
+ */
+static void
+splitResponsesAndCovariates(vector<double> &allResponses,
+                            vector< vector<double> > &allCovariates,
+                            vector<GenomicRegion> &allSites,
+                            vector<double> &foregroundResponses,
+                            vector< vector<double> > &foregroundCovariates,
+                            vector<GenomicRegion> &foregroundSites,
+                            const double thresh,
+                            const bool VERBOSE) {
+  // do nothing if the split puts everything into the background
+  if (thresh != 1) {
+    const size_t N = allResponses.size();
+    if (N != allSites.size()) {
+      stringstream ss;
+      ss << "Failed to split responses and covariates, sites and responses "
+            "have different dimension";
+      throw SMITHLABException(ss.str());
+    }
+
+    // here we calculate what is the smallest response value such that <thresh>
+    // proportion of the responses are less than it (i.e. background)
+    double absThresh = thresh * N, soFar = 0, responseThresh=0;
+    map<double, size_t> hist = countItemsOrdered<double>(allResponses);
+    map<double, size_t>::iterator prev = hist.end();
+    for (map<double, size_t>::iterator v = hist.begin(); v != hist.end(); ++v) {
+      soFar += v->second;
+      if (soFar >= absThresh) {
+        if (prev == hist.end()) {
+          stringstream ss;
+          ss << "Failed to split responses, smallest response accounts for more "
+             << "than " << (thresh * 100) << "% of all responses. Try "
+             <<  "increasing the threshold";
+          throw SMITHLABException(ss.str());
+        }
+        responseThresh = prev->first;
+        break;
+      }
+      prev = v;
+    }
+    if (VERBOSE) cerr << "Selected foreground count-threshold as "
+                      << responseThresh << endl;
+
+    // now build a vector of the indices that go into the foreground
+    std::tr1::unordered_set<size_t> fg_indices;
+    for (size_t i=0; i<allResponses.size(); i++) {
+      if (allResponses[i] > responseThresh) fg_indices.insert(i);
+    }
+
+    // new we split the responses and the sites based on these indices
+    copyRemoveByIndex<double>(allResponses, foregroundResponses,
+                              fg_indices);
+    copyRemoveByIndex<GenomicRegion>(allSites, foregroundSites,
+                                     fg_indices);
+    for (size_t i = 0; i < allCovariates.size(); i++) {
+      foregroundCovariates.push_back(vector<double>());
+      copyRemoveByIndex<double>(allCovariates[i], foregroundCovariates[i],
+                                fg_indices);
+    }
+  }
+
+  if (VERBOSE) cerr << "fg/bg split was " << foregroundResponses.size() << "/"
+                    << allResponses.size() << endl;
+}
 
 
 /**
@@ -477,6 +546,46 @@ loadCovariates(const vector<string> &filenames,
   }
 }
 
+
+/**
+ * \brief TODO
+ */
+static void
+outputSites(const vector<double> &fgResponses,
+                    const vector<double> &bgResponses,
+                    const vector<GenomicRegion> &fgSites,
+                    const vector<GenomicRegion> &bgSites,
+                    const vector<double> &fgPvals,
+                    const vector<double> &bgPvals,
+                    const double pThresh,
+                    ostream &ostrm) {
+  size_t fg_index = 0, bg_index = 0;
+  while ((fg_index < fgSites.size()) || (bg_index < bgSites.size())) {
+    if ((fg_index >= fgSites.size()) ||
+        (bgSites[bg_index] < fgSites[fg_index])) {
+      // background site comes first; either because we ran out of
+      // foreground sites or because of ordering. Score and output it.
+      const double p = bgPvals[bg_index];
+      if (p <= pThresh) {
+        GenomicRegion tmp(bgSites[bg_index]);
+        tmp.set_score(bgResponses[bg_index]);
+        ostrm << tmp << '\t' << p << endl;
+      }
+      bg_index += 1;
+    } else {
+      // foreground site comes first
+      const double p = fgPvals[fg_index];
+      if (p <= pThresh) {
+        GenomicRegion tmp(fgSites[fg_index]);
+        tmp.set_score(fgResponses[fg_index]);
+        ostrm << tmp << '\t' << p << endl;
+      }
+      fg_index += 1;
+    }
+  }
+}
+
+
 /**
  * \brief Use a single regression model to find peaks and output each
  *        input region with a p-value
@@ -495,8 +604,11 @@ static void
 FindPeaksSingleComponentRegression(const bool VERBOSE, const bool FITONLY,
                                    const bool NO_PVAL_CORRECT,
                                    const vector<GenomicRegion> &sites,
+                                   const vector<GenomicRegion> &fgSites,
                                    const vector<double> &responses,
+                                   const vector<double> &fgResponses,
                                    const vector< vector<double> > &covariates,
+                                   const vector< vector<double> > &fgCovariates,
                                    const FittingMethod ftmthd,
                                    const string &distType,
                                    const string& modelfn, const double pThresh,
@@ -527,16 +639,15 @@ FindPeaksSingleComponentRegression(const bool VERBOSE, const bool FITONLY,
     }
   }
 
-  // now we're going to flip the covariates matrix
+  // now we're going to flip the covariates matrix for the bg sites (we'll
+  // use these to fit our model)
   Matrix m(covariates);
   const vector< vector<double> > covariates_t =
     m.transpose().asVectorOfVector();
-
   // Load or fit the model
   RegressionModel *distro =
     RegressionBuilder::buildRegression(distType, covariates_t.size(), ftmthd);
-  if (modelfn.empty())
-    distro->estimateParams(responses, covariates_t, VERBOSE);
+  if (modelfn.empty()) distro->estimateParams(responses, covariates_t, VERBOSE);
   else distro->load(modelfn);
 
   // Give our output as the scored sites, or just the model?
@@ -545,23 +656,22 @@ FindPeaksSingleComponentRegression(const bool VERBOSE, const bool FITONLY,
   } else {
     // we first compute all the p-values, because we probably want to correct
     // them and to do that we need them all.
-    vector<double> pvals;
-    for (size_t i=0; i < n_sites; i++) {
+    vector<double> fg_pvals, pvals;
+    for (size_t i=0; i < n_sites; i++)
       pvals.push_back(distro->pvalue(responses[i], covariates_t[i]));
+    if (fgCovariates.size() > 0) {
+      Matrix m_fg(fgCovariates);
+      const vector< vector<double> > covariates_t_fg =
+        m_fg.transpose().asVectorOfVector();
+      for (size_t i=0; i < fgResponses.size(); i++)
+        fg_pvals.push_back(distro->pvalue(fgResponses[i], covariates_t_fg[i]));
     }
     if (!NO_PVAL_CORRECT) {
+      FDR::correctP(fg_pvals);
       FDR::correctP(pvals);
     }
-
-    for (size_t i=0; i < n_sites; i++) {
-      const double p = pvals[i];
-      if (p <= pThresh) {
-        GenomicRegion tmp(sites[i]);
-        tmp.set_score(responses[i]);
-        ostrm << tmp << '\t' << p
-              << endl;
-      }
-    }
+    outputSites(fgResponses, responses, fgSites, sites, fg_pvals, pvals,
+                pThresh, ostrm);
   }
 
   // cleanup and we're done
@@ -631,30 +741,9 @@ FindPeaksSingleComponentSimple(const bool VERBOSE, const bool FITONLY,
       FDR::correctP(bg_pvals);
     }
 
-    size_t fg_index = 0, bg_index = 0;
-    while ((fg_index < fgSites.size()) || (bg_index < sites.size())) {
-      if ((fg_index >= fgSites.size()) ||
-          (sites[bg_index] < fgSites[fg_index])) {
-        // background site comes first; either because we ran out of
-        // foreground sites or because of ordering. Score and output it.
-        const double p = bg_pvals[bg_index];
-        if (p <= pThresh) {
-          GenomicRegion tmp(sites[bg_index]);
-          tmp.set_score(responses[bg_index]);
-          ostrm << tmp << '\t' << p << endl;
-        }
-        bg_index += 1;
-      } else {
-        // foreground site comes first
-        const double p = fg_pvals[fg_index];
-        if (p <= pThresh) {
-          GenomicRegion tmp(fgSites[fg_index]);
-          tmp.set_score(fgResponses[fg_index]);
-          ostrm << tmp << '\t' << p << endl;
-        }
-        fg_index += 1;
-      }
-    }
+    // output the scored sites
+    outputSites(fgResponses, responses, fgSites, sites, fg_pvals, bg_pvals,
+                pThresh, ostrm);
   }
 
   // cleanup
@@ -873,13 +962,14 @@ main(int argc, const char* argv[]) {
         // more than one input file given, must be regression
         if (distType == "DEFAULT")
           distType = "ZeroTruncatedNegativeBinomialRegression";
-        /*vector<GenomicRegion> fgSites;
+        vector<GenomicRegion> fgSites;
         vector<double> fgResponses;
         vector< vector<double> > fgCovariates;
-        splitResponsesAndCovariates(responses, sites, covariates, fgResponses,
-                                    fgSites, fgCovariates, bgThresh, VERBOSE);*/
+        splitResponsesAndCovariates(responses, covariates, sites, fgResponses,
+                                    fgCovariates, fgSites, bgThresh, VERBOSE);
         FindPeaksSingleComponentRegression(VERBOSE, FITONLY, NO_PVAL_CORRECT,
-                                           sites, responses, covariates,
+                                           sites, fgSites, responses,
+                                           fgResponses, covariates, fgCovariates,
                                            FittingMethod(fittingMethodStr),
                                            distType, modelfn, pthresh, ostrm);
       }

@@ -10,12 +10,12 @@ New in Piranha v1.2.0
     multiple hypothesis testing using the method of Benjamini and Hochberg.
     This can be turned off using the -c option, which will make Piranha 
     output uncorrected p-values. 
-  * For the simple (non-regression) distributions, only the smallest 99% 
-    of positions are now used for fitting; they are considered to represent 
-    the background. This value was empirically arrived at by analysis of a 
-    collection of YYY CLIP-Seq datasets. However, it can be manually set 
-    using the new -a option. If you find that too few locations are 
-    significant, you may try decreasing this value.
+  * By default , only the smallest 99% of positions are now used for fitting; 
+    they are considered to represent the background. This value was empirically 
+    arrived at by analysis of a collection of YYY CLIP-Seq datasets. However, 
+    it can be manually set using the new -a option. To use all of the input 
+    data for fitting, you would use "-a 1" to set the threshold. If you find 
+    that too few locations are significant, you may try decreasing this value.
 	* It is now possible to use piranha to bin covariates as well as the 
 	  response file (although the default is still to assume both response and 
 		covariate files are already binned). When binning covariates (i.e. 
