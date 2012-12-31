@@ -559,6 +559,10 @@ outputSites(const vector<double> &fgResponses,
                     const vector<double> &bgPvals,
                     const double pThresh,
                     ostream &ostrm) {
+  // we first build a vector of the signfiicant sites
+  // because we want to post-process to merge nearby sites or identify
+  // cluster summits and this makes it easier.
+  vector<GenomicRegion> sigSites;
   size_t fg_index = 0, bg_index = 0;
   while ((fg_index < fgSites.size()) || (bg_index < bgSites.size())) {
     if ((fg_index >= fgSites.size()) ||
@@ -578,11 +582,65 @@ outputSites(const vector<double> &fgResponses,
       if (p <= pThresh) {
         GenomicRegion tmp(fgSites[fg_index]);
         tmp.set_score(fgResponses[fg_index]);
-        ostrm << tmp << '\t' << p << endl;
+        sigSites.push_back(tmp);
       }
       fg_index += 1;
     }
   }
+
+  // TODO pass agg method and distance, cry if agg method is none and
+  // distance isn't zero
+  // TODO visitor pattern?
+  // TODO would be __much__ better if we didn't have to copy these first...
+  if (aggregationMethod == NO_AGGREGATION) {
+    for (size_t i=0; i<sigSites.size(); i++)
+      ostrm << sigSites[i] << '\t' << p << endl;
+  } else if (aggregationMethod == SUMMITS_AGGREGATION)
+    outputSummits(sigSites, dist, ostrm);
+  else if (aggregationMethod == CLUSTERS_AGGREGATION)
+    outputClusters(sigSites, dist, ostrm);
+
+
+}
+
+// TODO mvoe above calling function or add prototype
+static void
+outputSummits(vector<GenomicRegion> &sigSites, size_t dist, ostream &ostrm) {
+  // just to cut down on typing..
+  typedef vector<GenomicRegion>::iterator gIter;
+
+  string clusterChrom = "";
+  size_t clusterStart = 0, clusterEnd = 0;
+  gIter clusterMaxElement = sigSites.end();
+  bool first = true;
+
+  for (gIter it = sigSites.begin(); it != sigSites.end(); ++it) {
+    if (first) {
+      clusterChrom = it->get_chrom();
+      clusterStart = it->get_start();
+      clusterEnd = it->get_end();
+      clusterMaxElement = it;
+    } else {
+      // end the cluster if this region is too far away
+      if ((clusterChrom != it->getChrom()) || (clusterEnd + cluster_dist < it->get_start())) {
+        ostrm << *it << endl;
+        clusterChrom = it->get_chrom();
+        clusterStart = it->get_start();
+        clusterEnd = it->get_end();
+        clusterMaxElement = it;
+      } else {
+        if (it->score > clusterMaxElement->get_score()) clusterMaxElement = it;
+        if (it->get_end() > clusterEnd) clusterEnd = it->get_end();
+        if (it->get_start() < clusterStart) clusterStart = it->get_start();
+      }
+    }
+  }
+}
+
+// TODO move above calling function or add prototype
+static void
+outputClusters(vector<GenomicRegion> &sigSites, size_t dist, ostream &ostrm) {
+
 }
 
 
