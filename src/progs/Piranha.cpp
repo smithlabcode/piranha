@@ -563,7 +563,7 @@ outputSites(const vector<double> &fgResponses,
                     const double pThresh,
                     aggregationType aggMethod,
                     ostream &ostrm) {
-  // we first build a vector of the signfiicant sites
+  // we first build a vector of the significant sites
   // because we want to post-process to merge nearby sites or identify
   // cluster summits and this makes it easier.
   vector<GenomicRegion> sigSites;
@@ -595,6 +595,14 @@ outputSites(const vector<double> &fgResponses,
   }
 
   // swap out the scores for the pvals, do the aggregation, then put them back.
+  for (size_t i=0; i<sigSites.size(); i++) {
+    double tmp = sites.get_score();
+    sites[i].set_score(sig_ps[i]);
+
+  }
+
+  // when we aggregate, what do we want to do with read-counts (these are
+  // in the score field)?
 
 
   // TODO pass agg method and distance, cry if agg method is none and

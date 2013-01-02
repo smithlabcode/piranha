@@ -45,6 +45,104 @@ public :
   GenomicRegionAggregator(size_t clusterDist) : clusterDistance(clusterDist) {};
 
   /**
+   *  \brief Aggregate a set of genomic regions where only some of them are
+   *         considered significant. Only significant regions are allowed to
+   *         support clusters.
+   *  \param f -- TODO -- must take start and end for regions, pvals and covars
+   */
+  template<typename Func>
+  void aggregateWithCovariates(
+      std::vector<GenomicRegion>::const_iterator r_start,
+      std::vector<GenomicRegion>::const_iterator r_end,
+      std::vector<double>::const_iterator p_start,
+      std::vector<double>::const_iterator p_end,
+      std::vector< vector<double> >::const_iterator c_start,
+      std::vector< vector<double> >::const_iterator c_end,
+      double alpha,
+      Func f) const {
+    // just to cut down on typing..
+    typedef std::vector<GenomicRegion>::const_iterator gIter;
+    typedef std::vector<double>::const_iterator dIter;
+    typedef std::vetor< vector<double> >::const_iterator cIter;
+
+    // Check that we have an equal number of regions, pvals and covariate
+    // vectors
+    if ((std::distance(r_start, r_end) != std::distance(p_start, p_end)) ||
+        (std::distance(r_start, r_end) != std::distance(c_start, c_end))) {
+      std::stringstream ss;
+      ss << "aggregating genomic regions failed -- didn't get the same number "
+         << "of regions as pvalues or covariate matrices";
+    }
+
+    std::string clusterChrom = "";
+    size_t clusterStartCoord = 0, clusterEndCoord = 0;
+
+    gIter clusterStart_region = r_start, clusterEnd_region = r_start;
+    gIter prev_region;
+    dIter clusterStart_pval = p_start, clusterEnd_pval = p_end;
+    cIter clusterStart_covars = c_start, clusterEnd_covars = c_end;
+
+    gIter it_region = r_start;
+    dIter it_pval = p_start;
+    cIter it_covars = c_start;
+
+    bool first = true;
+    for (gIter it_region = r_start; it_region != r_end; ++it_region) {
+      // make sure the regions are sorted
+      if (!first) {
+        if (it_region < prev_region) {
+          std::stringstream ss;
+          ss << "aggregating genomic regions failed -- regions were not "
+             << "sorted: saw " << (*prev_region) << " before " << (*it_region);
+          throw SMITHLABException(ss.str());
+        }
+        prev_region = it_region;
+      }
+
+      // only consider statistically significant bins -- we just skip over
+      // non-sig bins. they will still be 'in' the cluster though, so 'f'
+      // can do whatever it wants with them.
+      if (*it_pval < alpha) {
+        if (first) {
+          clusterChrom = it_region->get_chrom();
+          clusterStartCoord = it_region->get_start();
+          clusterEndCoord = it_region->get_end();
+          first = false;
+        } else {
+          if ((clusterChrom != it_region->get_chrom()) ||
+              (clusterEndCoord + this->clusterDistance < it_region->get_start())) {
+            // we end the current cluster if this region is too far away from it
+            // including if it's on a different chromosome
+            f(clusterStart_region, clusterEnd_region,
+              clusterStart_pval, clusterEnd_pval,
+              clusterStart_covars, clusterEnd_covars);
+            clusterChrom = it->get_chrom();
+            clusterStartCoord = it->get_start();
+            clusterEndCoord = it->get_end();
+            clusterStart_region = it;
+            clusterEnd_region = it + 1;
+          } else {
+            // we extend the current cluster if this region is within the
+            // required distance
+            if (it_region->get_end() > clusterEndCoord)
+              clusterEndCoord = it_region->get_end();
+            if (it_region->get_start() < clusterStartCoord)
+              clusterStartCoord = it_region->get_start();
+            clusterEnd_region = it + 1;
+          }
+        }
+      }
+
+      ++it_pval;
+      ++it_covars;
+    }
+    // don't forget the last cluster
+    f(clusterStart_region, clusterEnd_region,
+      clusterStart_pval, clusterEnd_pval,
+      clusterStart_covars, clusterEnd_covars);
+  }
+
+  /**
    * \brief Find the region clusters and call the function f on each cluster.
    *        The regions must be sorted
    * \param start   iterator to start of regions
