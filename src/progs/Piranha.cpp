@@ -400,11 +400,20 @@ splitResponsesAndCovariates(vector<double> &allResponses,
       copyRemoveByIndex<double>(allCovariates[i], foregroundCovariates[i],
                                 fg_indices);
     }
+  } else {
+    for (size_t i = 0; i < allCovariates.size(); i++)
+      foregroundCovariates.push_back(vector<double>());
   }
 
   if (VERBOSE) cerr << "fg/bg split was " << foregroundResponses.size() << "/"
                     << allResponses.size() << endl;
 }
+
+
+
+
+
+
 
 
 /**
@@ -551,82 +560,6 @@ loadCovariates(const vector<string> &filenames,
 
 
 /**
- * \brief TODO
- */
-static void
-outputSites(const vector<double> &fgResponses,
-                    const vector<double> &bgResponses,
-                    const vector<GenomicRegion> &fgSites,
-                    const vector<GenomicRegion> &bgSites,
-                    const vector<double> &fgPvals,
-                    const vector<double> &bgPvals,
-                    const double pThresh,
-                    aggregationType aggMethod,
-                    ostream &ostrm) {
-  // we first build a vector of the significant sites
-  // because we want to post-process to merge nearby sites or identify
-  // cluster summits and this makes it easier.
-  vector<GenomicRegion> sigSites;
-  vector<double> sig_ps;
-  size_t fg_index = 0, bg_index = 0;
-  while ((fg_index < fgSites.size()) || (bg_index < bgSites.size())) {
-    if ((fg_index >= fgSites.size()) ||
-        (bgSites[bg_index] < fgSites[fg_index])) {
-      // background site comes first; either because we ran out of
-      // foreground sites or because of ordering. Score and output it.
-      const double p = bgPvals[bg_index];
-      if (p <= pThresh) {
-        GenomicRegion tmp(bgSites[bg_index]);
-        tmp.set_score(bgResponses[bg_index]);
-        ostrm << tmp << '\t' << p << endl;
-      }
-      bg_index += 1;
-    } else {
-      // foreground site comes first
-      const double p = fgPvals[fg_index];
-      if (p <= pThresh) {
-        GenomicRegion tmp(fgSites[fg_index]);
-        tmp.set_score(fgResponses[fg_index]);
-        sigSites.push_back(tmp);
-        sig_ps.push_back(p);
-      }
-      fg_index += 1;
-    }
-  }
-
-  // swap out the scores for the pvals, do the aggregation, then put them back.
-  for (size_t i=0; i<sigSites.size(); i++) {
-    double tmp = sites.get_score();
-    sites[i].set_score(sig_ps[i]);
-
-  }
-
-  // when we aggregate, what do we want to do with read-counts (these are
-  // in the score field)?
-
-
-  // TODO pass agg method and distance, cry if agg method is none and
-  // distance isn't zero
-  // TODO visitor pattern?
-  // TODO would be __much__ better if we didn't have to copy these first...
-  if (aggMethod == NO_AGGREGATION) {
-    for (size_t i=0; i<sigSites.size(); i++)
-      ostrm << sigSites[i] << '\t' << sig_psp << endl;
-  } else if (aggMethod == SUMMITS_AGGREGATION) {
-    GenomicRegionAggregator(10).aggregate(sigSites.begin(), sigSites.end(),
-         ClusterSummitPrinter(ostrm, ClusterSummitPrinter::CLUSTER_MIN_SCORE));
-  } else if (aggMethod == CLUSTERS_AGGREGATION) {
-    GenomicRegionAggregator(10).aggregate(sigSites.begin(), sigSites.end(),
-         ClusterLimitsPrinter(ostrm));
-  }
-
-
-}
-
-
-
-
-/**
  * \brief Use a single regression model to find peaks and output each
  *        input region with a p-value
  * \param VERBOSE       TODO
@@ -643,16 +576,20 @@ outputSites(const vector<double> &fgResponses,
 static void
 FindPeaksSingleComponentRegression(const bool VERBOSE, const bool FITONLY,
                                    const bool NO_PVAL_CORRECT,
-                                   const vector<GenomicRegion> &sites,
-                                   const vector<GenomicRegion> &fgSites,
-                                   const vector<double> &responses,
-                                   const vector<double> &fgResponses,
-                                   const vector< vector<double> > &covariates,
-                                   const vector< vector<double> > &fgCovariates,
+                                   const bool CLUSTER_SUMMIT,
+                                   const bool SUPRESS_COVARS,
+                                   vector<GenomicRegion> &sites,
+                                   vector<GenomicRegion> &fgSites,
+                                   vector<double> &responses,
+                                   vector<double> &fgResponses,
+                                   vector< vector<double> > &covariates,
+                                   vector< vector<double> > &fgCovariates,
                                    const FittingMethod ftmthd,
                                    const string &distType,
                                    const string& modelfn, const double pThresh,
+                                   const size_t clusterDist,
                                    ostream& ostrm) {
+  // there must be at least one covariate...
   if (covariates.size() < 1) {
     stringstream ss;
     ss << "Peak finding using regression method " << distType << "failed. "
@@ -660,23 +597,44 @@ FindPeaksSingleComponentRegression(const bool VERBOSE, const bool FITONLY,
     throw SMITHLABException(ss.str());
   }
 
-  // a little sanity check on what was passed to the function, make sure
-  // all the dimensions of vectors make sense.
-  const size_t n_sites = responses.size();
-  if (n_sites != sites.size()) {
+  // we expect fg and bg covariates vectors to have the same number of
+  // covariates, even if one of these contains no elements
+  if (covariates.size() != fgCovariates.size()) {
     stringstream ss;
-    ss << "Failed peak finding using " << distType << ". Reason: number "
-       << "of responses doesn't match number of sites.";
+    ss << "Peak finding using regression method " << distType << "failed. "
+       << "Reason: foreground and background covariate vectors have "
+       << "different dimensions";
     throw SMITHLABException(ss.str());
   }
-  for(size_t i = 0; i < covariates.size(); i++) {
-    if (covariates[i].size() != n_sites) {
+  const size_t NUM_COVARS = covariates.size();
+  const size_t NUM_FG_SITES = fgCovariates[0].size();
+  const size_t NUM_BG_SITES = covariates[0].size();
+
+  // check all the covariate vectors match in size
+  for (size_t i=0; i<NUM_COVARS; i++) {
+    if ((covariates[i].size() != NUM_BG_SITES) ||
+        (fgCovariates[i].size() != NUM_FG_SITES)) {
       stringstream ss;
-      ss << "Failed peak finding using " << distType << ". Reason: number "
-         << "of values for covariate " << i << " does not match number of "
-         << "sites";
+      ss << "Peak finding using regression method " << distType << "failed. "
+         << "Reason: covariate " << (i+1) << " has irregular number of sites. ";
       throw SMITHLABException(ss.str());
     }
+  }
+
+  // check sites
+  if ((sites.size() != NUM_BG_SITES) || (fgSites.size() != NUM_FG_SITES)) {
+    stringstream ss;
+    ss << "Peak finding using regression method " << distType << "failed. "
+       << "Reason: sites vector size doesn't match covariates vector size";
+    throw SMITHLABException(ss.str());
+  }
+
+  // check responses
+  if ((responses.size() != NUM_BG_SITES) || (fgResponses.size() != NUM_FG_SITES)) {
+    stringstream ss;
+    ss << "Peak finding using regression method " << distType << "failed. "
+       << "Reason: responses vector size doesn't match covariates vector size";
+    throw SMITHLABException(ss.str());
   }
 
   // now we're going to flip the covariates matrix for the bg sites (we'll
@@ -697,9 +655,9 @@ FindPeaksSingleComponentRegression(const bool VERBOSE, const bool FITONLY,
     // we first compute all the p-values, because we probably want to correct
     // them and to do that we need them all.
     vector<double> fg_pvals, pvals;
-    for (size_t i=0; i < n_sites; i++)
+    for (size_t i=0; i < NUM_BG_SITES; i++)
       pvals.push_back(distro->pvalue(responses[i], covariates_t[i]));
-    if (fgCovariates.size() > 0) {
+    if (NUM_FG_SITES > 0) {
       Matrix m_fg(fgCovariates);
       const vector< vector<double> > covariates_t_fg =
         m_fg.transpose().asVectorOfVector();
@@ -710,8 +668,44 @@ FindPeaksSingleComponentRegression(const bool VERBOSE, const bool FITONLY,
       FDR::correctP(fg_pvals);
       FDR::correctP(pvals);
     }
-    outputSites(fgResponses, responses, fgSites, sites, fg_pvals, pvals,
-                pThresh, ostrm);
+
+    // put the response values back into the sites
+    for (size_t i=0; i<responses.size(); i++)
+      sites[i].set_score(responses[i]);
+    for (size_t i=0; i<fgResponses.size(); i++)
+      fgSites[i].set_score(fgResponses[i]);
+
+    // now we merge our bg and fg vectors back together. After this everything
+    // is in the bg vectors, fg ones are empty
+    mergeResponsesCovariatesPvals(fgSites, sites, fg_pvals, pvals, fgCovariates, covariates);
+
+    // finally, identify clusters and output to the ostream
+    vector<vector<double>::const_iterator> c_starts, c_ends;
+    for (size_t i=0; i<covariates.size(); i++) {
+      c_starts.push_back(covariates[i].begin());
+      c_ends.push_back(covariates[i].end());
+    }
+    if (CLUSTER_SUMMIT) {
+      if (SUPRESS_COVARS) {
+        GenomicRegionAggregator(clusterDist).aggregate(sites.begin(),
+          sites.end(), pvals.begin(), pvals.end(), pThresh,
+          ClusterSummitPrinter(ostrm, ClusterSummitPrinter::CLUSTER_MIN_SCORE));
+      } else {
+        GenomicRegionAggregator(clusterDist).aggregate(sites.begin(),
+          sites.end(), pvals.begin(), pvals.end(), c_starts, c_ends, pThresh,
+          ClusterSummitPrinter(ostrm, ClusterSummitPrinter::CLUSTER_MIN_SCORE));
+      }
+    } else {
+      if (SUPRESS_COVARS) {
+        GenomicRegionAggregator(clusterDist).aggregate(sites.begin(),
+          sites.end(), pvals.begin(), pvals.end(),
+          pThresh, ClusterLimitsPrinter(ostrm));
+      } else {
+        GenomicRegionAggregator(clusterDist).aggregate(sites.begin(),
+          sites.end(), pvals.begin(), pvals.end(),
+          c_starts, c_ends, pThresh, ClusterLimitsPrinter(ostrm));
+      }
+    }
   }
 
   // cleanup and we're done
@@ -740,12 +734,14 @@ FindPeaksSingleComponentRegression(const bool VERBOSE, const bool FITONLY,
 static void 
 FindPeaksSingleComponentSimple(const bool VERBOSE, const bool FITONLY,
                                const bool NO_PVAL_CORRECT,
+                               const bool CLUSTER_SUMMIT,
                                const string &distType, const string &modelfn,
-                               const vector<GenomicRegion> &sites,
-                               const vector<GenomicRegion> &fgSites,
+                               vector<GenomicRegion> &sites,
+                               vector<GenomicRegion> &fgSites,
                                const vector<double> &responses,
                                const vector<double> &fgResponses,
                                const double pThresh,
+                               const size_t clusterDist,
                                ostream& ostrm) {
 
   if (VERBOSE)
@@ -781,9 +777,26 @@ FindPeaksSingleComponentSimple(const bool VERBOSE, const bool FITONLY,
       FDR::correctP(bg_pvals);
     }
 
-    // output the scored sites
-    outputSites(fgResponses, responses, fgSites, sites, fg_pvals, bg_pvals,
-                pThresh, ostrm);
+    // put the response values back into the sites
+    for (size_t i=0; i<responses.size(); i++)
+      sites[i].set_score(responses[i]);
+    for (size_t i=0; i<fgResponses.size(); i++)
+      fgSites[i].set_score(fgResponses[i]);
+
+    // now we merge our bg and fg vectors back together. After this everything
+    // is in the bg vectors, fg ones are empty
+    mergeResponsesPvals(fgSites, sites, fg_pvals, bg_pvals);
+
+    // finally, identify clusters and output to the ostream
+    if (CLUSTER_SUMMIT) {
+      GenomicRegionAggregator(clusterDist).aggregate(sites.begin(), sites.end(),
+          bg_pvals.begin(), bg_pvals.end(), pThresh,
+          ClusterSummitPrinter(ostrm, ClusterSummitPrinter::CLUSTER_MIN_SCORE));
+    } else {
+      GenomicRegionAggregator(clusterDist).aggregate(sites.begin(),
+          sites.end(), bg_pvals.begin(), bg_pvals.end(),
+          pThresh, ClusterLimitsPrinter(ostrm));
+    }
   }
 
   // cleanup
@@ -807,6 +820,8 @@ main(int argc, const char* argv[]) {
     bool SORT = false;
     bool NO_PVAL_CORRECT = false;
     bool LOG_COVARS = false;
+    bool CLUSTER_SUMMIT = false;
+    bool SUPRESS_COVARS = false;
 
     size_t numComponents = 1;
     string distType = "DEFAULT";
@@ -816,6 +831,8 @@ main(int argc, const char* argv[]) {
     size_t binSize_response = ALREADY_BINNED;
     size_t binSize_covars = ALREADY_BINNED;
     size_t binSize_both = ALREADY_BINNED;
+    size_t cluster_dist = 1;
+
     
     /************************* COMMAND LINE OPTIONS **************************/
     string about = "Piranha Version 1.2.0 -- A program for finding peaks in "
@@ -850,6 +867,18 @@ main(int argc, const char* argv[]) {
                       false, binSize_covars);
     opt_parse.add_opt("bin_size_both", 'z', "synonymous with -b x -i x for any x",
                       false, binSize_both);
+    opt_parse.add_opt("cluster_dist", 'u', "merge significant bins within "
+                                           "this distance. Setting to 0 "
+                                           "disables merging, default is 1 "
+                                           "(merge adjacent)",
+                      false, cluster_dist);
+    opt_parse.add_opt("cluster_summit", 'e', "report cluster summit bin rather "
+                                             "than full cluster. Useful for "
+                                             "iCLIP",
+                      false, CLUSTER_SUMMIT);
+    opt_parse.add_opt("suppress_covars", 'r', "don't print covariate values in "
+                                              "output",
+                      false, SUPRESS_COVARS);
     opt_parse.add_opt("fit", 'f', "Fit only, output model to file", 
                       false, FITONLY);
     opt_parse.add_opt("dist", 'd', "Distribution type. Currently supports "
@@ -933,6 +962,12 @@ main(int argc, const char* argv[]) {
     std::ofstream of;
     if (!outfn.empty()) of.open(outfn.c_str());
     ostream ostrm(outfn.empty() ? cout.rdbuf() : of.rdbuf());
+    if (!ostrm.good()) {
+      stringstream ss;
+      if (!outfn.empty()) ss << "Failed to open " << outfn << " for writing";
+      else ss << "Unable to write to standard out";
+      throw SMITHLABException(ss.str());
+    }
 
     // go ahead and load the input files
     vector<GenomicRegion> sites;
@@ -994,10 +1029,11 @@ main(int argc, const char* argv[]) {
         vector<GenomicRegion> fgSites;
         vector<double> fgResponses;
         splitResponses(responses, sites, fgResponses, fgSites, bgThresh,
-                       VERBOSE);
+                              VERBOSE);
         FindPeaksSingleComponentSimple(VERBOSE, FITONLY, NO_PVAL_CORRECT,
-                                       distType, modelfn, sites, fgSites,
-                                       responses, fgResponses, pthresh, ostrm);
+                              CLUSTER_SUMMIT, distType, modelfn,
+                              sites, fgSites, responses, fgResponses,
+                              pthresh, cluster_dist, ostrm);
       } else {
         // more than one input file given, must be regression
         if (distType == "DEFAULT")
@@ -1006,12 +1042,12 @@ main(int argc, const char* argv[]) {
         vector<double> fgResponses;
         vector< vector<double> > fgCovariates;
         splitResponsesAndCovariates(responses, covariates, sites, fgResponses,
-                                    fgCovariates, fgSites, bgThresh, VERBOSE);
+                              fgCovariates, fgSites, bgThresh, VERBOSE);
         FindPeaksSingleComponentRegression(VERBOSE, FITONLY, NO_PVAL_CORRECT,
-                                           sites, fgSites, responses,
-                                           fgResponses, covariates, fgCovariates,
-                                           FittingMethod(fittingMethodStr),
-                                           distType, modelfn, pthresh, ostrm);
+                              CLUSTER_SUMMIT, SUPRESS_COVARS, sites, fgSites,
+                              responses, fgResponses, covariates,
+                              fgCovariates, FittingMethod(fittingMethodStr),
+                              distType, modelfn, pthresh, cluster_dist, ostrm);
       }
     } else {
       // do the full mixture thing

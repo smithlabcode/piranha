@@ -35,10 +35,12 @@
 #include <vector>
 #include <string>
 #include <sstream>
+#include <iterator>
 #include <map>
 #include <tr1/unordered_map>
 #include <tr1/unordered_set>
 
+#include "GenomicRegion.hpp"
 #include "smithlab_utils.hpp"
 #include "SimpleXML.hpp"
 
@@ -49,6 +51,47 @@ class UtilException : public SMITHLABException {
 public:
   UtilException(std::string s = std::string()) : SMITHLABException(s) {}
 };
+
+
+/******************************************************************************
+ * FOR SPLITTING AND MERGING RESPONSE, COVARIATE, P-VALUE AND SITE VECTORS FOR
+ * INPUT AND OUTPUT
+ */
+
+/**
+ * \brief compare doubles based on a separate vector of GenomicRegions
+ */
+class SiteComp  {
+public:
+  SiteComp (const std::vector<GenomicRegion> &s, const std::vector<double> &v) :
+    sites(s), vals(v) {}
+  bool operator () (const std::vector<double>::iterator &lhs,
+                    const std::vector<double>::iterator &rhs) const {
+      return this->sites[lhs - this->vals.begin()] <
+             this->sites[rhs - this->vals.begin()];
+  }
+private:
+  const std::vector<GenomicRegion> &sites;
+  const std::vector<double> &vals;
+};
+
+void mergeResponsesPvals(std::vector<GenomicRegion> &sites_fg,
+                         std::vector<GenomicRegion> &sites_bg,
+                         std::vector<double> &pvals_fg,
+                         std::vector<double> &pvals_bg);
+
+void mergeResponsesCovariatesPvals(std::vector<GenomicRegion> &sites_fg,
+                    std::vector<GenomicRegion> &sites_bg,
+                    std::vector<double> &pvals_fg,
+                    std::vector<double> &pvals_bg,
+                    std::vector< std::vector<double> > &covars_fg,
+                    std::vector< std::vector<double> > &covars_bg);
+
+
+
+/******************************************************************************
+ * TEMPLATES FOR MANIPULATING VECTORS
+ */
 
 /**
  * \brief TODO

@@ -30,12 +30,17 @@
 
 
 #ifndef GREGAGG_HPP
-#define RREGAGG_HPP
+#define GREGAGG_HPP
 
 #include <vector>
 #include <string>
+#include <iterator>
+#include <numeric>
+#include <list>
 
 #include "GenomicRegion.hpp"
+
+using namespace std;
 
 class GenomicRegionAggregator {
 public :
@@ -47,32 +52,54 @@ public :
   /**
    *  \brief Aggregate a set of genomic regions where only some of them are
    *         considered significant. Only significant regions are allowed to
-   *         support clusters.
-   *  \param f -- TODO -- must take start and end for regions, pvals and covars
+   *         extend clusters (if they fall within the required distance), but
+   *         all bins within the cluster are available for the function f
+   *         (which will be called on each cluster)
+   *  \param f function to call on each cluster. Must take start and end
+   *           iterators for the genomic regions, pvalues and covariates
+   *           covered by the cluster
    */
   template<typename Func>
-  void aggregateWithCovariates(
-      std::vector<GenomicRegion>::const_iterator r_start,
-      std::vector<GenomicRegion>::const_iterator r_end,
-      std::vector<double>::const_iterator p_start,
-      std::vector<double>::const_iterator p_end,
-      std::vector< vector<double> >::const_iterator c_start,
-      std::vector< vector<double> >::const_iterator c_end,
-      double alpha,
-      Func f) const {
+  void aggregate(
+      const std::vector<GenomicRegion>::const_iterator r_start,
+      const std::vector<GenomicRegion>::const_iterator r_end,
+      const std::vector<double>::const_iterator p_start,
+      const std::vector<double>::const_iterator p_end,
+      const std::vector< vector<double>::const_iterator > c_starts,
+      const std::vector< vector<double>::const_iterator > c_ends,
+      const double alpha,
+      const Func f) const {
     // just to cut down on typing..
     typedef std::vector<GenomicRegion>::const_iterator gIter;
     typedef std::vector<double>::const_iterator dIter;
-    typedef std::vetor< vector<double> >::const_iterator cIter;
 
+    // check length and number of covariate iterators
+    if (c_starts.size() != c_ends.size()) {
+      std::stringstream ss;
+      ss << "aggregating genomic regions failed -- didn't get the same number "
+         << "of start iterators for covariates as we got end iterators";
+      throw SMITHLABException(ss.str());
+    }
+    for (size_t i=1; i<c_starts.size(); i++) {
+      if (std::distance(c_starts[0], c_ends[0]) !=
+          std::distance(c_starts[i], c_ends[i])) {
+        std::stringstream ss;
+        ss << "aggregating genomic regions failed -- didn't get the same "
+           << "number of covariates values for all covariates";
+        throw SMITHLABException(ss.str());
+      }
+    }
     // Check that we have an equal number of regions, pvals and covariate
     // vectors
     if ((std::distance(r_start, r_end) != std::distance(p_start, p_end)) ||
-        (std::distance(r_start, r_end) != std::distance(c_start, c_end))) {
+        ((c_starts.size() > 0) &&
+         (std::distance(r_start, r_end) != std::distance(c_starts[0], c_ends[0])))) {
       std::stringstream ss;
       ss << "aggregating genomic regions failed -- didn't get the same number "
          << "of regions as pvalues or covariate matrices";
+      throw SMITHLABException(ss.str());
     }
+
 
     std::string clusterChrom = "";
     size_t clusterStartCoord = 0, clusterEndCoord = 0;
@@ -80,11 +107,16 @@ public :
     gIter clusterStart_region = r_start, clusterEnd_region = r_start;
     gIter prev_region;
     dIter clusterStart_pval = p_start, clusterEnd_pval = p_end;
-    cIter clusterStart_covars = c_start, clusterEnd_covars = c_end;
+    std::vector<dIter> clusterStart_covars, clusterEnd_covars;
+    for (size_t i=0; i<c_starts.size(); ++i) {
+      clusterStart_covars.push_back(c_starts[i]);
+      clusterEnd_covars.push_back(c_ends[i]);
+    }
 
     gIter it_region = r_start;
     dIter it_pval = p_start;
-    cIter it_covars = c_start;
+    vector<dIter> it_covars;
+    for (size_t i=0; i<c_starts.size(); ++i) it_covars.push_back(c_starts[i]);
 
     bool first = true;
     for (gIter it_region = r_start; it_region != r_end; ++it_region) {
@@ -102,25 +134,40 @@ public :
       // only consider statistically significant bins -- we just skip over
       // non-sig bins. they will still be 'in' the cluster though, so 'f'
       // can do whatever it wants with them.
-      if (*it_pval < alpha) {
+      if (*it_pval <= alpha) {
+        //cerr << "looking at " << *it_region << endl;
         if (first) {
           clusterChrom = it_region->get_chrom();
           clusterStartCoord = it_region->get_start();
           clusterEndCoord = it_region->get_end();
+          clusterStart_region = it_region;
+          clusterEnd_region = it_region + 1;
+          clusterStart_pval = it_pval;
+          clusterEnd_pval = it_pval + 1;
+          for (size_t i=0; i<c_starts.size(); ++i) {
+            clusterStart_covars[i] = it_covars[i];
+            clusterEnd_covars[i] = it_covars[i] + 1;
+          }
           first = false;
         } else {
           if ((clusterChrom != it_region->get_chrom()) ||
-              (clusterEndCoord + this->clusterDistance < it_region->get_start())) {
+              (clusterEndCoord + this->clusterDistance <= it_region->get_start())) {
             // we end the current cluster if this region is too far away from it
             // including if it's on a different chromosome
             f(clusterStart_region, clusterEnd_region,
               clusterStart_pval, clusterEnd_pval,
               clusterStart_covars, clusterEnd_covars);
-            clusterChrom = it->get_chrom();
-            clusterStartCoord = it->get_start();
-            clusterEndCoord = it->get_end();
-            clusterStart_region = it;
-            clusterEnd_region = it + 1;
+            clusterChrom = it_region->get_chrom();
+            clusterStartCoord = it_region->get_start();
+            clusterEndCoord = it_region->get_end();
+            clusterStart_region = it_region;
+            clusterEnd_region = it_region + 1;
+            clusterStart_pval = it_pval;
+            clusterEnd_pval = it_pval + 1;
+            for (size_t i=0; i<c_starts.size(); ++i) {
+              clusterStart_covars[i] = it_covars[i];
+              clusterEnd_covars[i] = it_covars[i] + 1;
+            }
           } else {
             // we extend the current cluster if this region is within the
             // required distance
@@ -128,13 +175,17 @@ public :
               clusterEndCoord = it_region->get_end();
             if (it_region->get_start() < clusterStartCoord)
               clusterStartCoord = it_region->get_start();
-            clusterEnd_region = it + 1;
+            clusterEnd_region = it_region + 1;
+            clusterEnd_pval = it_pval + 1;
+            for (size_t i=0; i<c_starts.size(); ++i) {
+              clusterEnd_covars[i] = it_covars[i] + 1;
+            }
           }
         }
       }
 
       ++it_pval;
-      ++it_covars;
+      for (size_t i=0; i<c_starts.size(); ++i) ++(it_covars[i]);
     }
     // don't forget the last cluster
     f(clusterStart_region, clusterEnd_region,
@@ -143,69 +194,17 @@ public :
   }
 
   /**
-   * \brief Find the region clusters and call the function f on each cluster.
-   *        The regions must be sorted
-   * \param start   iterator to start of regions
-   * \param end     iterator to end of regions
-   * \param f       function to call on each cluster, must take two const
-   *                iterators to vector which will delineate the first and
-   *                last+1 bins in the cluster
-   * \throws SMITHLABException if regions aren't sorted
+   * \brief TODO
    */
   template<typename Func>
-  void aggregate(std::vector<GenomicRegion>::const_iterator start,
-                 std::vector<GenomicRegion>::const_iterator end,
-                 Func f) const {
-    // just to cut down on typing..
-    typedef std::vector<GenomicRegion>::const_iterator gIter;
-
-    std::string clusterChrom = "";
-    size_t clusterStartCoord = 0, clusterEndCoord = 0;
-    gIter clusterStart = start, clusterEnd = start;
-    gIter prev;
-    bool first = true;
-
-    for (gIter it = start; it != end; ++it) {
-      // make sure everything is sorted
-      if (!first) {
-        if (it < prev) {
-          std::stringstream ss;
-          ss << "aggregating genomic regions failed -- regions were not "
-             << "sorted: saw " << (*prev) << " before " << (*it);
-          throw SMITHLABException(ss.str());
-        }
-        prev = it;
-      }
-
-      if (first) {
-        clusterChrom = it->get_chrom();
-        clusterStartCoord = it->get_start();
-        clusterEndCoord = it->get_end();
-        first = false;
-      } else {
-        if ((clusterChrom != it->get_chrom()) ||
-            (clusterEndCoord + this->clusterDistance < it->get_start())) {
-          // we end the current cluster if this region is too far away from it
-          // including if it's on a different chromosome
-          f(clusterStart, clusterEnd);
-          clusterChrom = it->get_chrom();
-          clusterStartCoord = it->get_start();
-          clusterEndCoord = it->get_end();
-          clusterStart = it;
-          clusterEnd = it + 1;
-        } else {
-          // we extend the current cluster if this region is within the
-          // required distance
-          if (it->get_end() > clusterEndCoord)
-            clusterEndCoord = it->get_end();
-          if (it->get_start() < clusterStartCoord)
-            clusterStartCoord = it->get_start();
-          clusterEnd = it + 1;
-        }
-      }
-    }
-    // don't forget the last cluster
-    f(clusterStart, clusterEnd);
+  void aggregate(const std::vector<GenomicRegion>::const_iterator r_start,
+      const std::vector<GenomicRegion>::const_iterator r_end,
+      const std::vector<double>::const_iterator p_start,
+      const std::vector<double>::const_iterator p_end,
+      const double alpha,
+      const Func f) const {
+    const std::vector< vector<double>::const_iterator > dummy;
+    aggregate(r_start, r_end, p_start, p_end, dummy, dummy, alpha, f);
   }
 
 private:
@@ -221,15 +220,67 @@ private:
 class ClusterLimitsPrinter {
 public:
   ClusterLimitsPrinter(std::ostream &ostrm) : outputStream(ostrm) {}
-  void operator() (std::vector<GenomicRegion>::const_iterator s,
-                   std::vector<GenomicRegion>::const_iterator e) {
+  void operator() (std::vector<GenomicRegion>::const_iterator s_region,
+                   std::vector<GenomicRegion>::const_iterator e_region,
+                   std::vector<double>::const_iterator s_pval,
+                   std::vector<double>::const_iterator e_pval,
+                   std::vector< std::vector<double>::const_iterator > s_covar,
+                   std::vector< std::vector<double>::const_iterator > e_covar)
+  const {
+    // just to cut down on typing..
+    typedef std::vector<GenomicRegion>::const_iterator gIter;
+    typedef std::vector<double>::const_iterator dIter;
+
+    // if name is consistent, use it -- else use "X"
+    // use the average of the scores
+    std::string name = "";
+    double score = 0;
+    size_t numBins = 0;
+    for (gIter it = s_region; it != e_region; ++it) {
+      numBins += 1;
+      if (name == "") name = it->get_name();
+      if (name != it->get_name()) {
+        name = "X";
+      }
+      score += it->get_score();
+    }
+    score = score / numBins;
+
+    // pick the strand that occurs most often
+    size_t pos = 0, neg = 0;
+    char strand = '+';
+    for (gIter it = s_region; it != e_region; ++it) {
+      if (it->get_strand() == '-') ++neg;
+      else ++pos;
+    }
+    if (neg > pos) strand = '-';
+
+    // average of p-values within the cluster
+    double pval = std::accumulate(s_pval, e_pval, 0.0);
+    pval = pval / numBins;
+
+    // average of covariates within the cluster
+    vector<double> cvars;
+    for (size_t i=0; i<s_covar.size(); i++) {
+      double sum = 0;
+      for (dIter it = s_covar[i]; it != e_covar[i]; ++it) sum += (*it);
+      cvars.push_back(sum / numBins);
+    }
+
     GenomicRegion tmp;
-    tmp.set_chrom(s->get_chrom());
-    tmp.set_start(s->get_start());
-    tmp.set_end((e-1)->get_end());
-    tmp.set_name((e-1)->get_name() == s->get_name() ? s->get_name() : "X");
-    tmp.set_score(0);
-    this->outputStream << tmp << std::endl;
+    tmp.set_chrom(s_region->get_chrom());
+    tmp.set_start(s_region->get_start());
+    tmp.set_end((e_region-1)->get_end());
+    tmp.set_name(name);
+    tmp.set_score(score);
+    tmp.set_strand(strand);
+    this->outputStream << tmp << "\t" << pval;
+    if (cvars.size() != 0) this->outputStream << "\t";
+    for (size_t i=0; i<cvars.size(); ++i) {
+      this->outputStream << cvars[i];
+      if (i != cvars.size()-1) this->outputStream << "\t";
+    }
+    this->outputStream << std::endl;
   }
 private:
   std::ostream &outputStream;
@@ -243,12 +294,23 @@ class ClusterSummitPrinter {
 public:
   ClusterSummitPrinter(std::ostream &ostrm, bool findMax) :
     fMax(findMax), outputStream(ostrm) {}
-  void operator() (std::vector<GenomicRegion>::const_iterator s,
-                   std::vector<GenomicRegion>::const_iterator e) {
-    if (this->fMax)
-      this->outputStream << *std::max_element(s,e, CompScore()) << std::endl;
-    else
-      this->outputStream << *std::min_element(s,e, CompScore()) << std::endl;
+  void operator() (std::vector<GenomicRegion>::const_iterator s_region,
+      std::vector<GenomicRegion>::const_iterator e_region,
+      std::vector<double>::const_iterator s_pval,
+      std::vector<double>::const_iterator e_pval,
+      std::vector< std::vector<double>::const_iterator > s_covar,
+      std::vector< std::vector<double>::const_iterator > e_covar) const {
+    typedef std::vector<double>::const_iterator DIter;
+    DIter mpval = (this->fMax) ? std::max_element(s_pval, e_pval) :
+                                 std::min_element(s_pval, e_pval);
+
+    outputStream << *(s_region + (mpval - s_pval)) << "\t" << *mpval;
+    if (s_covar.size() != 0) this->outputStream << "\t";
+    for (size_t i=0; i<s_covar.size(); ++i) {
+      this->outputStream << *(s_covar[i] + (mpval - s_pval));
+      if (i != s_covar.size()-1) this->outputStream << "\t";
+    }
+    this->outputStream << std::endl;
   }
   static const bool CLUSTER_MAX_SCORE = true;
   static const bool CLUSTER_MIN_SCORE = false;

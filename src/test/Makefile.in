@@ -157,7 +157,9 @@ TestReadBinner : TestReadBinner.o gtest_main.a $(USER_DIR)/ReadBinner.o \
              $(SMITHLAB_CPP)/smithlab_utils.o $(SMITHLAB_CPP)/GenomicRegion.o 
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $^ -o $@ $(LIBS)
 
-TestUtility : TestUtility.o gtest_main.a 
+TestUtility : TestUtility.o $(USER_DIR)/Utility.o \
+							$(SMITHLAB_CPP)/GenomicRegion.o $(SMITHLAB_CPP)/smithlab_utils.o \
+							gtest_main.a 
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $^ -o $@ $(LIBS)
 
 TestFDR : TestFDR.o $(USER_DIR)/FDR.o gtest_main.a

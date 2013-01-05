@@ -65,7 +65,7 @@ Piranha : $(addprefix $(COMMON_DIR), \
 	ZTNBRegression.o RegressionMixtureModel.o \
 	LinearRegression.o Distribution.o \
 	TruncatedPoissonRegression.o VectorMath.o Matrix.o \
-	RegressionModel.o ZTP.o \
+	RegressionModel.o ZTP.o Utility.o \
 	DistributionMixtureModel.o ZTNB.o GeneralisedLinearModel.o \
 	ReadBinner.o FDR.o)
 

@@ -1,5 +1,5 @@
 /**
-  \file TestZTNB.cpp
+  \file TestUtility.cpp
   \brief This source file defines a set of unit tests for utility functions
          defined in utility.hpp
 
@@ -125,3 +125,168 @@ TEST(UtilTest, testCountItemsOrdered) {
     indx += 1;
   }
 }
+
+/**
+ * \brief TODO
+ */
+TEST(UtilTest, testMergeResponsesCovariatesPvals) {
+  // 8 fg sites, 9 bg sites
+  vector<GenomicRegion> sites_fg, sites_bg, expect_sites;
+  sites_fg.push_back(GenomicRegion("chr1", 1,  2,  "C1R0",  1, '+'));
+  sites_bg.push_back(GenomicRegion("chr1", 2,  3,  "C1R1",  2, '+'));
+  sites_fg.push_back(GenomicRegion("chr1", 3,  4,  "C1R2",  5, '+'));
+  sites_bg.push_back(GenomicRegion("chr1", 4,  5,  "C1R3",  2, '+'));
+  sites_fg.push_back(GenomicRegion("chr1", 5,  6,  "C1R4",  4, '+'));
+  sites_bg.push_back(GenomicRegion("chr1", 6,  7,  "C1R5",  2, '+'));
+  sites_bg.push_back(GenomicRegion("chr1", 7,  8,  "C1R6",  4, '+'));
+  sites_fg.push_back(GenomicRegion("chr1", 8,  9,  "C1R7",  6, '+'));
+  sites_fg.push_back(GenomicRegion("chr1", 9,  10, "C1R8",  8, '+'));
+  sites_bg.push_back(GenomicRegion("chr1", 10, 11, "C1R9",  1, '+'));
+  // ****
+  sites_bg.push_back(GenomicRegion("chr2", 3, 4,  "C2R0",  1, '+'));
+  sites_bg.push_back(GenomicRegion("chr2", 4, 5,  "C2R1",  4, '+'));
+  sites_fg.push_back(GenomicRegion("chr2", 5, 6,  "C2R2",  1, '+'));
+  sites_fg.push_back(GenomicRegion("chr2", 6, 7,  "C2R3",  7, '+'));
+  sites_bg.push_back(GenomicRegion("chr2", 7, 8,  "C2R4",  2, '+'));
+  sites_fg.push_back(GenomicRegion("chr2", 8, 9,  "C2R5",  5, '+'));
+  sites_bg.push_back(GenomicRegion("chr2", 9, 10, "C2R6",  2, '+'));
+  // ****
+  expect_sites.push_back(GenomicRegion("chr1", 1,  2,  "C1R0",  1, '+'));
+  expect_sites.push_back(GenomicRegion("chr1", 2,  3,  "C1R1",  2, '+'));
+  expect_sites.push_back(GenomicRegion("chr1", 3,  4,  "C1R2",  5, '+'));
+  expect_sites.push_back(GenomicRegion("chr1", 4,  5,  "C1R3",  2, '+'));
+  expect_sites.push_back(GenomicRegion("chr1", 5,  6,  "C1R4",  4, '+'));
+  expect_sites.push_back(GenomicRegion("chr1", 6,  7,  "C1R5",  2, '+'));
+  expect_sites.push_back(GenomicRegion("chr1", 7,  8,  "C1R6",  4, '+'));
+  expect_sites.push_back(GenomicRegion("chr1", 8,  9,  "C1R7",  6, '+'));
+  expect_sites.push_back(GenomicRegion("chr1", 9,  10, "C1R8",  8, '+'));
+  expect_sites.push_back(GenomicRegion("chr1", 10, 11, "C1R9",  1, '+'));
+  expect_sites.push_back(GenomicRegion("chr2", 3, 4,   "C2R0",  1, '+'));
+  expect_sites.push_back(GenomicRegion("chr2", 4, 5,   "C2R1",  4, '+'));
+  expect_sites.push_back(GenomicRegion("chr2", 5, 6,   "C2R2",  1, '+'));
+  expect_sites.push_back(GenomicRegion("chr2", 6, 7,   "C2R3",  7, '+'));
+  expect_sites.push_back(GenomicRegion("chr2", 7, 8,   "C2R4",  2, '+'));
+  expect_sites.push_back(GenomicRegion("chr2", 8, 9,   "C2R5",  5, '+'));
+  expect_sites.push_back(GenomicRegion("chr2", 9, 10,  "C2R6",  2, '+'));
+
+  // p-values
+  const double pvs_fg[8] = {0.02,  0.0005, 0.001, 0.001,
+                            0.002, 0.001,  0.05,  0.05};
+  const double pvs_bg[9] = {0.05,  0.002,  0.001, 0.002,
+                            0.2,   0.001,  0.2,   0.005, 0.01};
+  vector<double> pvals_fg(pvs_fg, pvs_fg+8);
+  vector<double> pvals_bg(pvs_bg, pvs_bg+9);
+  const double pvs_exp[17] = {0.02,  0.05,  0.0005, 0.002, 0.001,
+                              0.001, 0.002, 0.001,  0.002, 0.2,
+                              0.001, 0.2,   0.001,  0.05,  0.005,
+                              0.05,  0.01};
+  vector<double> expect_pvals(pvs_exp, pvs_exp+17);
+
+  // covariates
+  const double c1_fg[8] = {1,2, 5,2,7,1,2,3};
+  const double c1_bg[9] = {4,10,1,1,2,5,7,1,1};
+  const double c2_fg[8] = {2,2, 7,1,5,2,2,1};
+  const double c2_bg[9] = {9,11,2,1,2,7,8,7,3};
+  const double cv1_exp[17] = {1, 4, 2, 10, 5,
+                              1, 1, 2, 7,  2,
+                              5, 7, 1, 2,  1,
+                              3, 1};
+  const double cv2_exp[17] = {2, 9, 2, 11, 7,
+                              2, 1, 1, 5,  2,
+                              7, 8, 2, 2,  7,
+                              1, 3};
+  vector<double> expect_cv1(cv1_exp, cv1_exp+17),
+                 expect_cv2(cv2_exp, cv2_exp+17);
+
+  vector< vector<double> > cvs_fg, cvs_bg;
+  cvs_fg.push_back(vector<double>());
+  cvs_fg.push_back(vector<double>());
+  cvs_bg.push_back(vector<double>());
+  cvs_bg.push_back(vector<double>());
+  for (size_t i=0; i<8; i++) {
+    cvs_fg[0].push_back(c1_fg[i]);
+    cvs_fg[1].push_back(c2_fg[i]);
+  }
+  for (size_t i=0; i<9; i++) {
+    cvs_bg[0].push_back(c1_bg[i]);
+    cvs_bg[1].push_back(c2_bg[i]);
+  }
+
+  mergeResponsesCovariatesPvals(sites_fg, sites_bg, pvals_fg, pvals_bg,
+                                cvs_fg, cvs_bg);
+
+  EXPECT_EQ(expect_pvals, pvals_bg);
+  EXPECT_EQ(expect_sites, sites_bg);
+  EXPECT_EQ(expect_cv1, cvs_bg[0]);
+  EXPECT_EQ(expect_cv2, cvs_bg[1]);
+}
+
+
+/**
+ * \brief TODO
+ */
+TEST(UtilTest, testMergeResponsesPvals) {
+  // 8 fg sites, 9 bg sites
+  vector<GenomicRegion> sites_fg, sites_bg, expect_sites;
+  sites_fg.push_back(GenomicRegion("chr1", 1,  2,  "C1R0",  1, '+'));
+  sites_bg.push_back(GenomicRegion("chr1", 2,  3,  "C1R1",  2, '+'));
+  sites_fg.push_back(GenomicRegion("chr1", 3,  4,  "C1R2",  5, '+'));
+  sites_bg.push_back(GenomicRegion("chr1", 4,  5,  "C1R3",  2, '+'));
+  sites_fg.push_back(GenomicRegion("chr1", 5,  6,  "C1R4",  4, '+'));
+  sites_bg.push_back(GenomicRegion("chr1", 6,  7,  "C1R5",  2, '+'));
+  sites_bg.push_back(GenomicRegion("chr1", 7,  8,  "C1R6",  4, '+'));
+  sites_fg.push_back(GenomicRegion("chr1", 8,  9,  "C1R7",  6, '+'));
+  sites_fg.push_back(GenomicRegion("chr1", 9,  10, "C1R8",  8, '+'));
+  sites_bg.push_back(GenomicRegion("chr1", 10, 11, "C1R9",  1, '+'));
+  // ****
+  sites_bg.push_back(GenomicRegion("chr2", 3, 4,  "C2R0",  1, '+'));
+  sites_bg.push_back(GenomicRegion("chr2", 4, 5,  "C2R1",  4, '+'));
+  sites_fg.push_back(GenomicRegion("chr2", 5, 6,  "C2R2",  1, '+'));
+  sites_fg.push_back(GenomicRegion("chr2", 6, 7,  "C2R3",  7, '+'));
+  sites_bg.push_back(GenomicRegion("chr2", 7, 8,  "C2R4",  2, '+'));
+  sites_fg.push_back(GenomicRegion("chr2", 8, 9,  "C2R5",  5, '+'));
+  sites_bg.push_back(GenomicRegion("chr2", 9, 10, "C2R6",  2, '+'));
+  // ****
+  expect_sites.push_back(GenomicRegion("chr1", 1,  2,  "C1R0",  1, '+'));
+  expect_sites.push_back(GenomicRegion("chr1", 2,  3,  "C1R1",  2, '+'));
+  expect_sites.push_back(GenomicRegion("chr1", 3,  4,  "C1R2",  5, '+'));
+  expect_sites.push_back(GenomicRegion("chr1", 4,  5,  "C1R3",  2, '+'));
+  expect_sites.push_back(GenomicRegion("chr1", 5,  6,  "C1R4",  4, '+'));
+  expect_sites.push_back(GenomicRegion("chr1", 6,  7,  "C1R5",  2, '+'));
+  expect_sites.push_back(GenomicRegion("chr1", 7,  8,  "C1R6",  4, '+'));
+  expect_sites.push_back(GenomicRegion("chr1", 8,  9,  "C1R7",  6, '+'));
+  expect_sites.push_back(GenomicRegion("chr1", 9,  10, "C1R8",  8, '+'));
+  expect_sites.push_back(GenomicRegion("chr1", 10, 11, "C1R9",  1, '+'));
+  expect_sites.push_back(GenomicRegion("chr2", 3, 4,   "C2R0",  1, '+'));
+  expect_sites.push_back(GenomicRegion("chr2", 4, 5,   "C2R1",  4, '+'));
+  expect_sites.push_back(GenomicRegion("chr2", 5, 6,   "C2R2",  1, '+'));
+  expect_sites.push_back(GenomicRegion("chr2", 6, 7,   "C2R3",  7, '+'));
+  expect_sites.push_back(GenomicRegion("chr2", 7, 8,   "C2R4",  2, '+'));
+  expect_sites.push_back(GenomicRegion("chr2", 8, 9,   "C2R5",  5, '+'));
+  expect_sites.push_back(GenomicRegion("chr2", 9, 10,  "C2R6",  2, '+'));
+
+  // p-values
+  const double pvs_fg[8] = {0.02,  0.0005, 0.001, 0.001,
+                            0.002, 0.001,  0.05,  0.05};
+  const double pvs_bg[9] = {0.05,  0.002,  0.001, 0.002,
+                            0.2,   0.001,  0.2,   0.005, 0.01};
+  vector<double> pvals_fg(pvs_fg, pvs_fg+8);
+  vector<double> pvals_bg(pvs_bg, pvs_bg+9);
+  const double pvs_exp[17] = {0.02,  0.05,  0.0005, 0.002, 0.001,
+                              0.001, 0.002, 0.001,  0.002, 0.2,
+                              0.001, 0.2,   0.001,  0.05,  0.005,
+                              0.05,  0.01};
+  vector<double> expect_pvals(pvs_exp, pvs_exp+17);
+
+  mergeResponsesPvals(sites_fg, sites_bg, pvals_fg, pvals_bg);
+
+  EXPECT_EQ(expect_pvals, pvals_bg);
+  EXPECT_EQ(expect_sites, sites_bg);
+}
+
+
+
+
+
+
+
