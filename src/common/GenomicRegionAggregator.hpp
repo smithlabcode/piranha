@@ -40,7 +40,22 @@
 
 #include "GenomicRegion.hpp"
 
-using namespace std;
+
+/**
+ * \brief TODO
+ */
+class DummyPrinter {
+public:
+  DummyPrinter() {}
+  void operator() (std::vector<GenomicRegion>::const_iterator s_region,
+      std::vector<GenomicRegion>::const_iterator e_region,
+      std::vector<double>::const_iterator s_pval,
+      std::vector<double>::const_iterator e_pval,
+      std::vector< std::vector<double>::const_iterator > s_covar,
+      std::vector< std::vector<double>::const_iterator > e_covar) const {
+  }
+private:
+};
 
 class GenomicRegionAggregator {
 public :
@@ -48,6 +63,21 @@ public :
    * \brief Construct a cluster aggregator with the given distance
    */
   GenomicRegionAggregator(size_t clusterDist) : clusterDistance(clusterDist) {};
+
+  template<typename Func>
+    void aggregate(
+        const std::vector<GenomicRegion>::const_iterator r_start,
+        const std::vector<GenomicRegion>::const_iterator r_end,
+        const std::vector<double>::const_iterator p_start,
+        const std::vector<double>::const_iterator p_end,
+        const std::vector< std::vector<double>::const_iterator > c_starts,
+        const std::vector< std::vector<double>::const_iterator > c_ends,
+        const double alpha,
+        const Func f) const {
+    aggregate<Func, DummyPrinter>(r_start, r_end, p_start, p_end,
+                                  c_starts, c_ends, alpha, f, DummyPrinter());
+  }
+
 
   /**
    *  \brief Aggregate a set of genomic regions where only some of them are
@@ -59,16 +89,17 @@ public :
    *           iterators for the genomic regions, pvalues and covariates
    *           covered by the cluster
    */
-  template<typename Func>
+  template<typename Func, typename FuncAnti>
   void aggregate(
       const std::vector<GenomicRegion>::const_iterator r_start,
       const std::vector<GenomicRegion>::const_iterator r_end,
       const std::vector<double>::const_iterator p_start,
       const std::vector<double>::const_iterator p_end,
-      const std::vector< vector<double>::const_iterator > c_starts,
-      const std::vector< vector<double>::const_iterator > c_ends,
+      const std::vector< std::vector<double>::const_iterator > c_starts,
+      const std::vector< std::vector<double>::const_iterator > c_ends,
       const double alpha,
-      const Func f) const {
+      const Func f,
+      const FuncAnti f_anti) const {
     // just to cut down on typing..
     typedef std::vector<GenomicRegion>::const_iterator gIter;
     typedef std::vector<double>::const_iterator dIter;
@@ -106,16 +137,16 @@ public :
 
     gIter clusterStart_region = r_start, clusterEnd_region = r_start;
     gIter prev_region;
-    dIter clusterStart_pval = p_start, clusterEnd_pval = p_end;
+    dIter clusterStart_pval = p_start, clusterEnd_pval = p_start;
     std::vector<dIter> clusterStart_covars, clusterEnd_covars;
     for (size_t i=0; i<c_starts.size(); ++i) {
       clusterStart_covars.push_back(c_starts[i]);
-      clusterEnd_covars.push_back(c_ends[i]);
+      clusterEnd_covars.push_back(c_starts[i]);
     }
 
     gIter it_region = r_start;
     dIter it_pval = p_start;
-    vector<dIter> it_covars;
+    std::vector<dIter> it_covars;
     for (size_t i=0; i<c_starts.size(); ++i) it_covars.push_back(c_starts[i]);
 
     bool first = true;
@@ -137,6 +168,10 @@ public :
       if (*it_pval <= alpha) {
         //cerr << "looking at " << *it_region << endl;
         if (first) {
+          f_anti(clusterEnd_region, it_region,
+                 clusterEnd_pval,   it_pval,
+                 clusterEnd_covars, it_covars);
+
           clusterChrom = it_region->get_chrom();
           clusterStartCoord = it_region->get_start();
           clusterEndCoord = it_region->get_end();
@@ -157,6 +192,34 @@ public :
             f(clusterStart_region, clusterEnd_region,
               clusterStart_pval, clusterEnd_pval,
               clusterStart_covars, clusterEnd_covars);
+            // the area from the end of this finished cluster up to the current
+            // bin is 'anti-cluster'
+            //std::cerr << "current region is: " << *it_region << std::endl;
+            //std::cerr << "cluster end is: " << *clusterEnd_region << std::endl;
+            if (it_region != clusterEnd_region)
+              if (this->clusterDistance == 0) {
+                gIter tmp_region = clusterEnd_region;
+                dIter tmp_pval = clusterEnd_pval;
+                std::vector<dIter> tmp_covars;
+                for (size_t i=0; i<clusterEnd_covars.size(); ++i)
+                  tmp_covars.push_back(clusterEnd_covars[i]);
+                while(tmp_region != it_region) {
+                  std::vector<dIter> tmp_covars_p1;
+                  for (size_t i=0; i<tmp_covars.size(); ++i)
+                    tmp_covars_p1.push_back(tmp_covars[i] + 1);
+                  f_anti(tmp_region, tmp_region + 1,
+                         tmp_pval,   tmp_pval + 1,
+                         tmp_covars, tmp_covars_p1);
+                  ++tmp_region;
+                  ++tmp_pval;
+                  for (size_t i=0; i<tmp_covars.size(); ++i) ++tmp_covars[i];
+                }
+              } else {
+                f_anti(clusterEnd_region, it_region,
+                       clusterEnd_pval,   it_pval,
+                       clusterEnd_covars, it_covars);
+              }
+            // 'open' the new cluster
             clusterChrom = it_region->get_chrom();
             clusterStartCoord = it_region->get_start();
             clusterEndCoord = it_region->get_end();
@@ -203,8 +266,23 @@ public :
       const std::vector<double>::const_iterator p_end,
       const double alpha,
       const Func f) const {
-    const std::vector< vector<double>::const_iterator > dummy;
+    const std::vector< std::vector<double>::const_iterator > dummy;
     aggregate(r_start, r_end, p_start, p_end, dummy, dummy, alpha, f);
+  }
+
+  /**
+   * \brief TODO
+   */
+  template<typename Func, typename AntiFunc>
+  void aggregate(const std::vector<GenomicRegion>::const_iterator r_start,
+      const std::vector<GenomicRegion>::const_iterator r_end,
+      const std::vector<double>::const_iterator p_start,
+      const std::vector<double>::const_iterator p_end,
+      const double alpha,
+      const Func f,
+      const AntiFunc f_anti) const {
+    const std::vector< std::vector<double>::const_iterator > dummy;
+    aggregate(r_start, r_end, p_start, p_end, dummy, dummy, alpha, f, f_anti);
   }
 
 private:
@@ -260,7 +338,7 @@ public:
     pval = pval / numBins;
 
     // average of covariates within the cluster
-    vector<double> cvars;
+    std::vector<double> cvars;
     for (size_t i=0; i<s_covar.size(); i++) {
       double sum = 0;
       for (dIter it = s_covar[i]; it != e_covar[i]; ++it) sum += (*it);
@@ -315,16 +393,158 @@ public:
   static const bool CLUSTER_MAX_SCORE = true;
   static const bool CLUSTER_MIN_SCORE = false;
 private:
-  // little nested class for comparing regions by score
-  class CompScore {
-  public :
-    bool operator() (const GenomicRegion &lhs, const GenomicRegion &rhs) {
-      return lhs.get_score() < rhs.get_score();
-    }
-  };
-
   bool fMax;
   std::ostream &outputStream;
+};
+
+
+/**
+ * \brief TODO
+ */
+class PaddedClusterSummitPrinter {
+public:
+  PaddedClusterSummitPrinter(std::ostream &ostrm, bool findMax, size_t pad) :
+    padding(pad), fMax(findMax), outputStream(ostrm) {}
+  void operator() (std::vector<GenomicRegion>::const_iterator s_region,
+      std::vector<GenomicRegion>::const_iterator e_region,
+      std::vector<double>::const_iterator s_pval,
+      std::vector<double>::const_iterator e_pval,
+      std::vector< std::vector<double>::const_iterator > s_covar,
+      std::vector< std::vector<double>::const_iterator > e_covar) const {
+    typedef std::vector<double>::const_iterator DIter;
+    DIter mpval = (this->fMax) ? std::max_element(s_pval, e_pval) :
+                                 std::min_element(s_pval, e_pval);
+    GenomicRegion tmp(*(s_region + (mpval - s_pval)));
+    tmp.set_start(tmp.get_start() - this->padding);
+    tmp.set_end(tmp.get_end() + this->padding);
+
+    outputStream << tmp << "\t" << *mpval;
+    if (s_covar.size() != 0) this->outputStream << "\t";
+    for (size_t i=0; i<s_covar.size(); ++i) {
+      this->outputStream << *(s_covar[i] + (mpval - s_pval));
+      if (i != s_covar.size()-1) this->outputStream << "\t";
+    }
+    this->outputStream << std::endl;
+  }
+  static const bool CLUSTER_MAX_SCORE = true;
+  static const bool CLUSTER_MIN_SCORE = false;
+private:
+  size_t padding;
+  bool fMax;
+  std::ostream &outputStream;
+};
+
+
+
+class FlankingPrinter {
+public:
+  FlankingPrinter(std::ostream &ostrm, size_t d, size_t s) :
+    outputStream(ostrm), offset(d), size(s) {}
+  void operator() (std::vector<GenomicRegion>::const_iterator s_region,
+      std::vector<GenomicRegion>::const_iterator e_region,
+      std::vector<double>::const_iterator s_pval,
+      std::vector<double>::const_iterator e_pval,
+      std::vector< std::vector<double>::const_iterator > s_covar,
+      std::vector< std::vector<double>::const_iterator > e_covar) const {
+
+    typedef std::vector<GenomicRegion>::const_iterator gIter;
+    typedef std::vector<double>::const_iterator dIter;
+    const size_t NUM_COVARS = s_covar.size();
+
+    /*std::cerr << "got s_region as " << (*s_region) << std::endl;
+    std::cerr << "got e_region as " << (*e_region) << std::endl;*/
+
+    // only output if this flanking region is big enough
+    // also, skip when this spans a chromosome break -- too much of a pain...
+    if ((s_region->get_chrom() == e_region->get_chrom()) &&
+        (((this->offset * 2) + (this->size * 2)) <
+         (e_region->get_end() - s_region->get_start()))) {
+      //std::cerr << "\tconsidered this range large enough" << std::endl;
+      GenomicRegion left, right;
+      // go over the locations we'll use and calculate the average pval,
+      // covariate values, strand, name, etc.
+      double avg_score_left = 0, avg_score_right = 0;
+      std::string name_left = "", name_right = "";
+      double avg_p_left = 0, avg_p_right = 0;
+      size_t pos_left = 0, neg_left = 0, pos_right = 0, neg_right = 0;
+      char strand_left = '+', strand_right = '+';
+      std::vector<double> avg_covars_left, avg_covars_right;
+      while (avg_covars_left.size() < NUM_COVARS) avg_covars_left.push_back(0);
+      while (avg_covars_right.size() < NUM_COVARS) avg_covars_right.push_back(0);
+      for (size_t i=0; i<this->size; i++) {
+        // pval
+        avg_p_left += *(s_pval + this->offset + i);
+        avg_p_right += *(e_pval - this->offset - i - 1);
+        // covars
+        for (size_t j=0; j<NUM_COVARS; j++) {
+          avg_covars_left[j] += *(s_covar[j] + this->offset + i);
+          avg_covars_right[j] += *(e_covar[j] - this->offset - i - 1);
+        }
+        // strand, name and score
+        gIter n_left = (s_region + this->offset + i);
+        gIter n_right = (e_region - this->offset - i - 1);
+        if (n_left->get_strand() == '-') ++neg_left;
+        else ++pos_left;
+        if (n_right->get_strand() == '-') ++neg_right;
+        else ++pos_right;
+        avg_score_right += n_right->get_score();
+        avg_score_left += n_left->get_score();
+        if (name_left == "") name_left = n_left->get_name();
+        else if (name_left != n_left->get_name()) name_left = "X";
+        if (name_right == "") name_right = n_right->get_name();
+        else if (name_right != n_right->get_name()) name_right = "X";
+      }
+      avg_p_left = avg_p_left / this->size;
+      avg_p_right = avg_p_right / this->size;
+      for (size_t j=0; j<NUM_COVARS; j++) {
+        avg_covars_left[j] = avg_covars_left[j] / this->size;
+        avg_covars_right[j] = avg_covars_right[j] / this->size;
+      }
+      if (neg_left > pos_left) strand_left = '-';
+      if (neg_right > pos_right) strand_right = '-';
+      avg_score_right = avg_score_right / this->size;
+      avg_score_left = avg_score_left / this->size;
+
+      gIter left_start = s_region + this->offset,
+            left_end = s_region + this->offset + this->size;
+      left.set_chrom(left_start->get_chrom());
+      left.set_start(left_start->get_start());
+      left.set_end(left_end->get_start());
+      left.set_name(name_left);
+      left.set_score(avg_score_left);
+      left.set_strand(strand_left);
+      gIter right_end = e_region - this->offset,
+            right_start = e_region - this->offset - this->size;
+      right.set_chrom(right_start->get_chrom());
+      right.set_start(right_start->get_start());
+      right.set_end(right_end->get_start());
+      right.set_name(name_right);
+      right.set_score(avg_score_right);
+      right.set_strand(strand_right);
+
+      // output the left flanking
+      this->outputStream << left << "\t" << avg_p_left;
+      if (NUM_COVARS != 0) this->outputStream << "\t";
+      for (size_t i=0; i<NUM_COVARS; ++i) {
+        this->outputStream << avg_covars_left[i];
+        if (i != NUM_COVARS-1) this->outputStream << "\t";
+      }
+      this->outputStream << std::endl;
+
+      // output the right flanking
+      this->outputStream << right << "\t" << avg_p_right;
+      if (NUM_COVARS != 0) this->outputStream << "\t";
+      for (size_t i=0; i<NUM_COVARS; ++i) {
+        this->outputStream << avg_covars_right[i];
+        if (i != NUM_COVARS-1) this->outputStream << "\t";
+      }
+      this->outputStream << std::endl;
+    }
+  }
+private:
+  std::ostream &outputStream;
+  size_t offset;
+  size_t size;
 };
 
 #endif
