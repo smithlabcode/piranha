@@ -166,12 +166,13 @@ public :
       // non-sig bins. they will still be 'in' the cluster though, so 'f'
       // can do whatever it wants with them.
       if (*it_pval <= alpha) {
-        //cerr << "looking at " << *it_region << endl;
+        //std::cerr << "looking at " << *it_region << *it_pval << std::endl;
         if (first) {
           f_anti(clusterEnd_region, it_region,
                  clusterEnd_pval,   it_pval,
                  clusterEnd_covars, it_covars);
 
+          //std::cerr << "first anti cluster " << *it_region << std::endl;
           clusterChrom = it_region->get_chrom();
           clusterStartCoord = it_region->get_start();
           clusterEndCoord = it_region->get_end();
@@ -184,19 +185,19 @@ public :
             clusterEnd_covars[i] = it_covars[i] + 1;
           }
           first = false;
+          //std::cerr << "done first anti " << *it_region << std::endl;
         } else {
           if ((clusterChrom != it_region->get_chrom()) ||
               (clusterEndCoord + this->clusterDistance <= it_region->get_start())) {
             // we end the current cluster if this region is too far away from it
             // including if it's on a different chromosome
+            //std::cerr << "first cluster " << *it_region << std::endl;
             f(clusterStart_region, clusterEnd_region,
               clusterStart_pval, clusterEnd_pval,
               clusterStart_covars, clusterEnd_covars);
             // the area from the end of this finished cluster up to the current
             // bin is 'anti-cluster'
-            //std::cerr << "current region is: " << *it_region << std::endl;
-            //std::cerr << "cluster end is: " << *clusterEnd_region << std::endl;
-            if (it_region != clusterEnd_region)
+            if (it_region != clusterEnd_region) {
               if (this->clusterDistance == 0) {
                 gIter tmp_region = clusterEnd_region;
                 dIter tmp_pval = clusterEnd_pval;
@@ -219,6 +220,7 @@ public :
                        clusterEnd_pval,   it_pval,
                        clusterEnd_covars, it_covars);
               }
+            }
             // 'open' the new cluster
             clusterChrom = it_region->get_chrom();
             clusterStartCoord = it_region->get_start();
@@ -251,6 +253,7 @@ public :
       for (size_t i=0; i<c_starts.size(); ++i) ++(it_covars[i]);
     }
     // don't forget the last cluster
+    //std::cerr << "printing last cluster" << std::endl;
     f(clusterStart_region, clusterEnd_region,
       clusterStart_pval, clusterEnd_pval,
       clusterStart_covars, clusterEnd_covars);
@@ -359,6 +362,14 @@ public:
       if (i != cvars.size()-1) this->outputStream << "\t";
     }
     this->outputStream << std::endl;
+
+    /*std::cerr << tmp << "\t" << pval;
+    if (cvars.size() != 0) std::cerr << "\t";
+    for (size_t i=0; i<cvars.size(); ++i) {
+      std::cerr << cvars[i];
+      if (i != cvars.size()-1) std::cerr << "\t";
+    }
+    std::cerr << std::endl;*/
   }
 private:
   std::ostream &outputStream;
@@ -411,6 +422,7 @@ public:
       std::vector<double>::const_iterator e_pval,
       std::vector< std::vector<double>::const_iterator > s_covar,
       std::vector< std::vector<double>::const_iterator > e_covar) const {
+
     typedef std::vector<double>::const_iterator DIter;
     DIter mpval = (this->fMax) ? std::max_element(s_pval, e_pval) :
                                  std::min_element(s_pval, e_pval);
@@ -458,7 +470,7 @@ public:
     // also, skip when this spans a chromosome break -- too much of a pain...
     if ((s_region->get_chrom() == e_region->get_chrom()) &&
         (((this->offset * 2) + (this->size * 2)) <
-         (e_region->get_end() - s_region->get_start()))) {
+         (e_region->get_start() - s_region->get_start()))) {
       //std::cerr << "\tconsidered this range large enough" << std::endl;
       GenomicRegion left, right;
       // go over the locations we'll use and calculate the average pval,

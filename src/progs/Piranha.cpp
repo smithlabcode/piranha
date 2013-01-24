@@ -29,6 +29,7 @@
  * \section history Revision History
  **/
 
+// From stl
 #include <iostream>
 #include <algorithm>
 #include <vector>
@@ -62,6 +63,7 @@
 #include "api/BamAlignment.h"
 #endif
 
+// From stl
 using std::vector;
 using std::string;
 using std::endl;
@@ -84,16 +86,11 @@ using BamTools::BamReader;
 using BamTools::RefData;
 #endif
 
-#ifdef BAM_SUPPORT
-enum inputType{BED, BAM};
-#endif
-#ifdef NO_BAM_SUPPORT
-enum inputType{BED};
-#endif
-
-const size_t ALREADY_BINNED = 0;
+enum inputType{BED, BAM, BEDGraph};
 enum aggregationType {NO_AGGREGATION, SUMMITS_AGGREGATION,
                       CLUSTERS_AGGREGATION};
+const size_t ALREADY_BINNED = 0;
+
 
 /**
  * \brief functor for sorting genomic regions
@@ -166,12 +163,60 @@ guessFileType(const string &filename, const bool verbose = false) {
   else if (verbose)
       cerr << "guessed that " << filename << " is BED format" << endl;
 
-// only guess BAM format if we have compiled with BAM support
-#ifdef BAM_SUPPORT
   if (ext == "BAM") return BAM;
-#endif
-
   return BED;
+}
+
+/**
+ * \brief load a BAM file into a vector of genomic regions
+ */
+static void
+ReadBAMFile(const string filename, vector<GenomicRegion> &v) {
+#ifdef BAM_SUPPORT
+  // BAMTools seems not to check if the file exists and can be read, so
+  // we'll just make sure first..
+  ifstream mf(filename.c_str());
+  if (!mf.good()) {
+    stringstream ss;
+    ss << "Failed to read " << filename << " file does not exist or is "
+       << "not readable";
+    throw SMITHLABException(ss.str());
+  } else {
+    mf.close();
+  }
+
+  size_t skippedInvalidChromID = 0;
+  BamReader reader;
+  reader.Open(filename);
+
+  // Get header and reference
+  string header = reader.GetHeaderText();
+  RefVector refs = reader.GetReferenceData();
+
+  unordered_map<size_t, string> chrom_lookup;
+  for (size_t i = 0; i < refs.size(); ++i)
+    chrom_lookup[i] = refs[i].RefName;
+
+  BamAlignment bam;
+  while (reader.GetNextAlignment(bam)) {
+    if (bam.RefID == -1) {
+      skippedInvalidChromID += 1;
+    } else {
+      GenomicRegion r;
+      BamAlignmentToGenomicRegion(chrom_lookup, bam, r);
+      v.push_back(r);
+    }
+  }
+
+  if (skippedInvalidChromID > 0)
+    cerr << "WARNING: Skipped " << skippedInvalidChromID << " in BAM file "
+         << filename << " due to unknown reference IDs" << endl;
+#else
+  stringstream ss;
+  ss << "Failed to load " << filename << " Piranha was not compiled with "
+     << "BAM support";
+  throw SMITHLABException(ss.str());
+#endif
 }
 
 
@@ -199,53 +244,18 @@ loadResponses(const string &filename, vector<double> &response,
   response.clear();
   inputType type = guessFileType(filename, verbose);
 
-#ifdef BAM_SUPPORT
   // Cry on BAM input with already binned reads -- can't fit the read counts
   // into the map quality attribute in the SAM format, so we can't do this.
   if ((type == BAM) && (binSize == ALREADY_BINNED)) {
     stringstream ss;
     ss << "Responses cannot be provided in BAM format if they are not raw "
-       << "reads. Did you mean to use the -b option?";
+       << "reads. Did you mean to use the -b or -z options?";
     throw SMITHLABException(ss.str());
   }
-#endif
 
   // first we load all the data into the vector of regions...
-  if (type == BED) {
-    ReadBEDFile(filename, regions);
-  }
-#ifdef BAM_SUPPORT
-  else if (type == BAM) {
-    size_t skippedInvalidChromID = 0;
-    BamReader reader;
-    // TODO -- need to check that filename is valid; BAMTools seems not to
-    reader.Open(filename);
-
-    // Get header and reference
-    string header = reader.GetHeaderText();
-    RefVector refs = reader.GetReferenceData();
-
-    unordered_map<size_t, string> chrom_lookup;
-    for (size_t i = 0; i < refs.size(); ++i)
-      chrom_lookup[i] = refs[i].RefName;
-
-    BamAlignment bam;
-    while (reader.GetNextAlignment(bam)) {
-      if (bam.RefID == -1) {
-        skippedInvalidChromID += 1;
-      } else {
-        GenomicRegion r;
-        BamAlignmentToGenomicRegion(chrom_lookup, bam, r);
-        regions.push_back(r);
-      }
-    }
-
-    if (skippedInvalidChromID > 0)
-      cerr << "WARNING: Skipped " << skippedInvalidChromID << " in BAM file "
-           << filename << " due to unknown reference IDs" << endl;
-
-  }
-#endif
+  if (type == BED) ReadBEDFile(filename, regions);
+  else if (type == BAM) ReadBAMFile(filename, regions);
 
   // do we need to sort things?
   if (SORT) {
@@ -274,6 +284,159 @@ loadResponses(const string &filename, vector<double> &response,
   }
 }
 
+/**
+ * \brief load covariates for Piranha from the given filenames.
+ * \param filenames[in]   filenames of the input files that contain the
+ *                        covariate values and bins -- can be BED format
+ * \param sites[in]       the response sites -- these will be checked to make
+ *                        sure they match up with the bins defined in the
+ *                        covariate files.
+ * \param covariates[out] A matrix M which will be filled in such that M[i][j]
+ *                        is the value of the ith covariate for the jth bin.
+ * \param binSize[in]     if we need to bin the covariate, what is the bin size?
+ *                        This will cause the covariates to be treated as a
+ *                        set of reads basically. Can be set to ALREADY_BINNED
+ *                        if no binning should be done (default).
+ * \param SORT[in]        The input needs to be sorted; if this is true, we
+ *                        sort the input ourselves (faster to leave this false
+ *                        and just have the regions pre-sorted though)
+ * \param LOG[in]         transform covariate values into log (must not
+ *                        contain any zeros)
+ * \param NORMALISE[in]   if true (the default), we normalise all covariate
+ *                        values so they are between zero and one (exclusive).
+ * \param VERBOSE[in]     if true, print status messages to stderr
+ *
+ * \throws SMITHLABException if there is any response bin missing a covariate
+ *                           bin.
+ */
+static void
+loadCovariates(const vector<string> &filenames,
+               const vector<GenomicRegion> &sites,
+               vector<vector<double> > &covariates,
+               const size_t binSize = ALREADY_BINNED,
+               const bool SORT=false,
+               const bool LOG=false,
+               const bool NORMALISE_COVARS=true,
+               const bool VERBOSE=false) {
+  if (filenames.size() <= 0) {
+    stringstream ss;
+    ss << "failed to load covariates. Reason: didn't get any input filenames";
+    throw SMITHLABException(ss.str());
+  }
+
+  // load covariates
+  covariates.resize(filenames.size());
+  for (size_t i = 0; i < covariates.size(); i++) {
+    inputType type = guessFileType(filenames[i], VERBOSE);
+
+    // Cry on BAM input with already binned reads -- can't fit the read counts
+    // into the map quality attribute in the SAM format, so we can't do this.
+    if ((type == BAM) && (binSize == ALREADY_BINNED)) {
+      stringstream ss;
+      ss << "Responses cannot be provided in BAM format if they are not raw "
+         << "reads. Did you mean to use the -b or -z options?";
+      throw SMITHLABException(ss.str());
+    }
+
+    // first we load all the data into the vector of regions...
+    vector<GenomicRegion> covTmp;
+    if (type == BED) ReadBEDFile(filenames[i], covTmp);
+    else if (type == BAM) ReadBAMFile(filenames[i], covTmp);
+
+    // do we need to sort things?
+    if (SORT) {
+      sort(covTmp.begin(), covTmp.end(), regionComp());
+    }
+    if (!check_sorted(covTmp)) {
+      stringstream ss;
+      ss << filenames[i] << " is not sorted. Required sort order is chrom, "
+         << "end, start, strand. You must either sort them yourself, or use "
+         << "the -s option";
+      throw SMITHLABException(ss.str());
+    }
+
+    // tell the user how many values we found...
+    if (VERBOSE)
+      cerr << "loaded " << covTmp.size() << " elements from "
+           << filenames[i] << endl;
+
+    // now, do we need to bin the covariate?
+    // if we're binning, we'll add missing bins as well
+    if (binSize != ALREADY_BINNED) {
+      cerr << "binning" << endl;
+      vector<GenomicRegion> binned;
+      ReadBinner b(binSize);
+      b.binReads(covTmp, binned, sites, 1);
+      swap(binned, covTmp);
+    }
+
+    // cry if the sizes don't match what we expect -- we assume from here
+    // on in that there are at least as many covariate values as sites.
+    // TODO: I'm not sure this is needed, given the checks in the block of
+    //       code below.
+    if (covTmp.size() < sites.size()) {
+      stringstream ss;
+      ss << "failed loading covariate from " << filenames[i] << ". Reason: "
+         << "expected " << sites.size() << " regions, but found "
+         << covTmp.size() << endl;
+      throw SMITHLABException(ss.str());
+    }
+
+    // pull out the values and match up the regions
+    size_t covIndex = 0;
+    for (size_t j=0; j<sites.size(); j++) {
+      while ((covIndex < covTmp.size()) && (covTmp[covIndex] < sites[j])) {
+        covIndex += 1;
+      }
+      if ((covIndex >= covTmp.size()) || (sites[j] < covTmp[covIndex])) {
+        stringstream ss;
+        ss << "failed loading covariate from " << filenames[i] << ". Reason: "
+           << "could not find a value to associate with the response region "
+           << sites[j];
+        throw SMITHLABException(ss.str());
+      }
+      else if (sameRegion(covTmp[covIndex], sites[j])) {
+        covariates[i].push_back(covTmp[covIndex].get_score());
+      }
+    }
+  }
+
+  // normalise covariates?
+  if (NORMALISE_COVARS) {
+    for (size_t i = 0; i < covariates.size(); i++) {
+      double maxVal = *std::max_element(covariates[i].begin(),
+                                        covariates[i].end());
+      double minVal = *std::min_element(covariates[i].begin(),
+                                        covariates[i].end());
+      for (size_t j = 0; j < covariates[i].size(); j++) {
+        covariates[i][j] = (covariates[i][j] - minVal) / (maxVal - minVal);
+        // avoid having anything at exactly 0 or 1
+        if (covariates[i][j] == 0) covariates[i][j] = 0.01;
+        if (covariates[i][j] == 1) covariates[i][j] = 0.99;
+      }
+    }
+  }
+
+  if (LOG) {
+    for (size_t i = 0; i < covariates.size(); i++) {
+      for (size_t j = 0; j < covariates[i].size(); j++) {
+        if (covariates[i][j] == 0) {
+          stringstream ss;
+          ss << "can't take log of covariates, some values at zero";
+          throw SMITHLABException(ss.str());
+        }
+        // TODO fix magic number
+        else if (covariates[i][j] == 1) covariates[i][j] = 0.00001;
+        else {
+          covariates[i][j] = log(covariates[i][j]);
+          // avoid having anything at exactly 0 or 1
+          if (covariates[i][j] == 0) covariates[i][j] = 0.01;
+          if (covariates[i][j] == 1) covariates[i][j] = 0.99;
+        }
+      }
+    }
+  }
+}
 
 /**
  * \brief TODO
@@ -410,155 +573,6 @@ splitResponsesAndCovariates(vector<double> &allResponses,
 }
 
 
-
-
-
-
-
-
-/**
- * \brief load covariates for Piranha from the given filenames.
- * \param filenames[in]   filenames of the input files that contain the
- *                        covariate values and bins -- can be BED format
- * \param sites[in]       the response sites -- these will be checked to make
- *                        sure they match up with the bins defined in the
- *                        covariate files.
- * \param covariates[out] A matrix M which will be filled in such that M[i][j]
- *                        is the value of the ith covariate for the jth bin.
- * \param binSize[in]     if we need to bin the covariate, what is the bin size?
- *                        This will cause the covariates to be treated as a
- *                        set of reads basically. Can be set to ALREADY_BINNED
- *                        if no binning should be done (default).
- * \param SORT[in]        The input needs to be sorted; if this is true, we
- *                        sort the input ourselves (faster to leave this false
- *                        and just have the regions pre-sorted though)
- * \param LOG[in]         transform covariate values into log (must not
- *                        contain any zeros)
- * \param NORMALISE[in]   if true (the default), we normalise all covariate
- *                        values so they are between zero and one (exclusive).
- * \param VERBOSE[in]     if true, print status messages to stderr
- *
- * \throws SMITHLABException if there is any response bin missing a covariate
- *                           bin.
- */
-static void
-loadCovariates(const vector<string> &filenames,
-               const vector<GenomicRegion> &sites,
-               vector<vector<double> > &covariates,
-               const size_t binSize = ALREADY_BINNED,
-               const bool SORT=false,
-               const bool LOG=false,
-               const bool NORMALISE_COVARS=true,
-               const bool VERBOSE=false) {
-  if (filenames.size() <= 0) {
-    stringstream ss;
-    ss << "failed to load covariates. Reason: didn't get any input filenames";
-    throw SMITHLABException(ss.str());
-  }
-
-  // load covariates
-  covariates.resize(filenames.size());
-  for (size_t i = 0; i < covariates.size(); i++) {
-    // first load the covariate file
-    vector<GenomicRegion> covTmp;
-    ReadBEDFile(filenames[i], covTmp);
-
-    // do we need to sort things?
-    if (SORT) {
-      sort(covTmp.begin(), covTmp.end(), regionComp());
-    }
-    if (!check_sorted(covTmp)) {
-      stringstream ss;
-      ss << filenames[i] << " is not sorted. Required sort order is chrom, "
-         << "end, start, strand. You must either sort them yourself, or use "
-         << "the -s option";
-      throw SMITHLABException(ss.str());
-    }
-
-    // tell the user how many values we found...
-    if (VERBOSE)
-      cerr << "loaded " << covTmp.size() << " elements from "
-           << filenames[i] << endl;
-
-    // now, do we need to bin the covariate?
-    // if we're binning, we'll add missing bins as well
-    if (binSize != ALREADY_BINNED) {
-      cerr << "binning" << endl;
-      vector<GenomicRegion> binned;
-      ReadBinner b(binSize);
-      b.binReads(covTmp, binned, sites, 1);
-      swap(binned, covTmp);
-    }
-
-    // cry if the sizes don't match what we expect -- we assume from here
-    // on in that there are at least as many covariate values as sites.
-    // TODO: I'm not sure this is needed, given the checks in the block of
-    //       code below.
-    if (covTmp.size() < sites.size()) {
-      stringstream ss;
-      ss << "failed loading covariate from " << filenames[i] << ". Reason: "
-         << "expected " << sites.size() << " regions, but found "
-         << covTmp.size() << endl;
-      throw SMITHLABException(ss.str());
-    }
-
-    // pull out the values and match up the regions
-    size_t covIndex = 0;
-    for (size_t j=0; j<sites.size(); j++) {
-      while ((covIndex < covTmp.size()) && (covTmp[covIndex] < sites[j])) {
-        covIndex += 1;
-      }
-      if ((covIndex >= covTmp.size()) || (sites[j] < covTmp[covIndex])) {
-        stringstream ss;
-        ss << "failed loading covariate from " << filenames[i] << ". Reason: "
-           << "could not find a value to associate with the response region "
-           << sites[j];
-        throw SMITHLABException(ss.str());
-      }
-      else if (sameRegion(covTmp[covIndex], sites[j])) {
-        covariates[i].push_back(covTmp[covIndex].get_score());
-      }
-    }
-  }
-
-  // normalise covariates?
-  if (NORMALISE_COVARS) {
-    for (size_t i = 0; i < covariates.size(); i++) {
-      double maxVal = *std::max_element(covariates[i].begin(),
-                                        covariates[i].end());
-      double minVal = *std::min_element(covariates[i].begin(),
-                                        covariates[i].end());
-      for (size_t j = 0; j < covariates[i].size(); j++) {
-        covariates[i][j] = (covariates[i][j] - minVal) / (maxVal - minVal);
-        // avoid having anything at exactly 0 or 1
-        if (covariates[i][j] == 0) covariates[i][j] = 0.01;
-        if (covariates[i][j] == 1) covariates[i][j] = 0.99;
-      }
-    }
-  }
-
-  if (LOG) {
-    for (size_t i = 0; i < covariates.size(); i++) {
-      for (size_t j = 0; j < covariates[i].size(); j++) {
-        if (covariates[i][j] == 0) {
-          stringstream ss;
-          ss << "can't take log of covariates, some values at zero";
-          throw SMITHLABException(ss.str());
-        }
-        // TODO fix magic number
-        else if (covariates[i][j] == 1) covariates[i][j] = 0.00001;
-        else {
-          covariates[i][j] = log(covariates[i][j]);
-          // avoid having anything at exactly 0 or 1
-          if (covariates[i][j] == 0) covariates[i][j] = 0.01;
-          if (covariates[i][j] == 1) covariates[i][j] = 0.99;
-        }
-      }
-    }
-  }
-}
-
-
 /**
  * \brief Use a single regression model to find peaks and output each
  *        input region with a p-value
@@ -651,6 +665,11 @@ FindPeaksSingleComponentRegression(const bool VERBOSE, const bool FITONLY,
     RegressionBuilder::buildRegression(distType, covariates_t.size(), ftmthd);
   if (modelfn.empty()) distro->estimateParams(responses, covariates_t, VERBOSE);
   else distro->load(modelfn);
+
+  if (VERBOSE) {
+    cerr << "model parameters are: " << endl;
+    cerr << distro->toString() << endl;
+  }
 
   // Give our output as the scored sites, or just the model?
   if (FITONLY) {
@@ -976,25 +995,25 @@ main(int argc, const char* argv[]) {
                                            "disables merging, default is 1 "
                                            "(merge adjacent)",
                       false, cluster_dist);
-    opt_parse.add_opt("cluster_summit", 'e', "report cluster summit bin rather "
+    /*opt_parse.add_opt("cluster_summit", 'e', "report cluster summit bin rather "
                                              "than full cluster. Useful for "
                                              "iCLIP",
-                      false, CLUSTER_SUMMIT);
-    opt_parse.add_opt("cluster_summit_padding", 'g', "set padding around "
+                      false, CLUSTER_SUMMIT);*/
+    /*opt_parse.add_opt("cluster_summit_padding", 'g', "set padding around "
                                                      "cluster summits to this "
                                                      "amount (default is none)",
-                      false, summit_padding_amount);
-    opt_parse.add_opt("flanking_clusters", 'k', "output flanking clusters to "
+                      false, summit_padding_amount);*/
+    /*opt_parse.add_opt("flanking_clusters", 'k', "output flanking clusters to "
                                                 "this file.",
-                      false, flanking_fn);
-    opt_parse.add_opt("flanking_size", 'h', "extend flanking regions this far "
+                      false, flanking_fn);*/
+    /*opt_parse.add_opt("flanking_size", 'h', "extend flanking regions this far "
                                             "from cluster boundary. Default "
                                             "is 1x bin-width.",
-                      false, flanking_size);
-    opt_parse.add_opt("flanking_buffer_size", 'j', "ensure flanking regions "
+                      false, flanking_size);*/
+    /*opt_parse.add_opt("flanking_buffer_size", 'j', "ensure flanking regions "
                                             "are buffered from clusters by "
                                             "this much (default is none).",
-                      false, flanking_buffer_size);
+                      false, flanking_buffer_size);*/
     opt_parse.add_opt("suppress_covars", 'r', "don't print covariate values in "
                                               "output",
                       false, SUPRESS_COVARS);

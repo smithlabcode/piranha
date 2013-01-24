@@ -529,7 +529,7 @@ TEST(GRegAggTest, test_agg_summits_pvals_covars) {
 /**
  * \brief TODO
  */
-TEST(GRegAggTest, testFlankingPrinter) {
+/*TEST(GRegAggTest, testFlankingPrinter) {
   vector<GenomicRegion> regions;
   vector<GenomicRegion> expect_d0_s1_regions, expect_d1_s1_regions;
   vector<GenomicRegion> expect_d0_s2_regions;
@@ -662,6 +662,6 @@ TEST(GRegAggTest, testFlankingPrinter) {
   EXPECT_EQ(ss_exp_d1_s1.str(), ss_d1_s1.str());
   EXPECT_EQ(ss_exp_d0_s2.str(), ss_d0_s2.str());
   EXPECT_EQ(ss_exp_d1_padded.str(), ss_d1_padded.str());
-}
+}*/
 
 
