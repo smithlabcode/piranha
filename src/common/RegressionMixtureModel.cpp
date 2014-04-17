@@ -210,7 +210,8 @@ RegressionMixtureModel::loglikelihood(const vector<double>& response,
  */
 double
 RegressionMixtureModel::loglikelihood(const vector<double>& response,
-                        const vector<vector<double> >& covariates) const {
+                        const vector<vector<double> >& covariates,
+                        bool debug) const {
   const size_t N = response.size();
   const size_t K = this->ds.size();
   vector< vector<double> > probs = \

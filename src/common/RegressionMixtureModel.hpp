@@ -82,8 +82,10 @@ public :
   std::string getComponentAsString(size_t k) const;
   size_t numberOfComponents() const { return this->ds.size(); }
   std::vector<double> getComponentParameters(const int k) const;
+  using MixtureModel::loglikelihood;    // bring base log-like into scope.
   double loglikelihood(const std::vector<double>& response,
-      const std::vector<std::vector<double> >& covariates) const;
+      const std::vector<std::vector<double> >& covariates,
+      bool debug=false) const;
   double loglikelihood(const std::vector<double>& response,
       const std::vector< std::vector<double> >& probs,
       const std::vector< std::vector<double> >& covariates) const;
