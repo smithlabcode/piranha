@@ -97,8 +97,8 @@ private:
                const std::vector< std::vector<double> >& covariates) const;
 
   /*** Private constants ***/
-  static const double tiny = 0.00001; // just used in a few places to stop
-                                      // things going to zero
+  static const double tiny; // just used in a few places to stop
+                            // things going to zero
 };
 
 #endif

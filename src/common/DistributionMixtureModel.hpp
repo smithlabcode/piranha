@@ -80,9 +80,9 @@ private:
   std::vector<double> mixing;
 
   /*** private constants ***/
-  const static double stoppingEM = 0.01;
-  const static size_t emMaxIter = 1000;
-  const static double mixingLowerBound = 0.0001;
+  const static double stoppingEM;
+  const static size_t emMaxIter;
+  const static double mixingLowerBound;
 
   /*** private member functions ***/
   void estimateParamsEM(const std::vector<double>& obs, bool debug=false);

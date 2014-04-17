@@ -42,6 +42,11 @@ using std::vector;
 using std::string;
 using std::stringstream;
 
+// initialise static constant data members
+const double Gaussian::threshold = 0.000001;
+const double Gaussian::maxIter=100;
+const double Gaussian::tiny = 1e-254;
+
 
 /****
  * @summary: 

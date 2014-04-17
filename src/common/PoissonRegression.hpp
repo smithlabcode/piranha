@@ -99,9 +99,9 @@ public:
                const bool verbose);
 private:
   /* private constants */
-  static const double threshold = 0.000001; 
-  static const double maxIter=100;
-  static const double tiny = 1e-254;
+  static const double threshold;
+  static const double maxIter;
+  static const double tiny;
   
   /* static private functions */
   // TODO remove static

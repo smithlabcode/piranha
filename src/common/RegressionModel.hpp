@@ -131,9 +131,9 @@ protected:
   std::vector<double> coefficients;
 
   /*** protected constants ***/
-  static const double devianceThreshold = 0.001;
-  static const double maxLinearPredictorValue = 60;
-  static const double minLinearPredictorValue = -60;
+  static const double devianceThreshold;
+  static const double maxLinearPredictorValue;
+  static const double minLinearPredictorValue;
 
 private:
   /*** private constants ***/

@@ -50,7 +50,8 @@ using std::string;
 using std::isfinite;
 using std::stringstream;
 
-const double Matrix::threshold;
+// initialise static data members
+const double Matrix::threshold = 0.001;
 
 /******************************************************************************
  *  MATRIX CLASS

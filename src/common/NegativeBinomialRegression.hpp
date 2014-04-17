@@ -127,7 +127,7 @@ public:
 private:
   /*** private constants ***/
   /** \brief TODO **/
-  static const double threshold = 0.001; 
+  static const double threshold;
   
   /*** private instance variables ***/
   /** \brief the negative binomial dispersion parameter, alpha **/

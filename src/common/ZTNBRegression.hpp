@@ -108,18 +108,18 @@ public:
 
 private:
   /*** private constants ***/
-  static const double dispersonThreshold = 0.00000001;
-  static const double maxAlpha = 100;
-  static const double minAlpha = 1e-3;
-  static const double maxZeroProb = 0.9999999999;
-  static const double minZeroProb = 0.0000000001;
-  static const double minVariance = 0.0000000001;
-  static const double maxExpectedValue = 10000;
+  static const double dispersonThreshold;
+  static const double maxAlpha;
+  static const double minAlpha;
+  static const double maxZeroProb;
+  static const double minZeroProb;
+  static const double minVariance;
+  static const double maxExpectedValue;
   /** \brief floor for those calculations where zero cannot be allowed **/
-  static const double minZeroTolerance = 0.01;
+  static const double minZeroTolerance;
   /** \brief ceiling for those calculations where one cannot be allowed **/
-  static const double maxOneTolerance = 0.99;
-  static const size_t maxDispersionDampeningIters = 100;
+  static const double maxOneTolerance;
+  static const size_t maxDispersionDampeningIters;
 
   /*** private instance variables ***/
   double alpha;

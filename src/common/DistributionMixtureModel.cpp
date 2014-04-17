@@ -55,10 +55,10 @@ using std::cerr;
 using std::endl;
 using std::set;
 
-
-const double DistributionMixtureModel::stoppingEM;
-const size_t DistributionMixtureModel::emMaxIter;
-const double DistributionMixtureModel::mixingLowerBound;
+// initialise constants
+const double DistributionMixtureModel::stoppingEM = 0.01;
+const size_t DistributionMixtureModel::emMaxIter = 1000;
+const double DistributionMixtureModel::mixingLowerBound = 0.0001;
 
 
 /******************************************************************************

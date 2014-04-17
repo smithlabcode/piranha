@@ -118,7 +118,7 @@ public :
 
 private:
   /*** private constants ***/
-  static const double threshold = 0.001;
+  static const double threshold;
 
   /*** private instance variables ***/
   /** \brief contains the actual data for the matrix. **/

@@ -58,7 +58,8 @@ using std::string;
 using std::isfinite;
 using std::stringstream;
 
-const double TruncatedPoissonRegression::tiny;
+// Initialise static constants
+const double TruncatedPoissonRegression::tiny = 0.00001;
 
 /******************************************************************************
  *  Specifying the distribution

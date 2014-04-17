@@ -62,11 +62,12 @@ using std::make_pair;
 using std::stringstream;
 using std::numeric_limits;
 
-const double ZTNB::max_allowed_alpha;
-const double ZTNB::min_allowed_alpha;
-const double ZTNB::tolerance;
-const double ZTNB::MAX_RANDOM_MU;
-const double ZTNB::MAX_RANDOM_ALPHA;
+const double ZTNB::max_allowed_alpha = 1000;
+const double ZTNB::min_allowed_alpha = 1e-20;
+const double ZTNB::tolerance = 1e-10;
+const double ZTNB::MAX_RANDOM_MU = 100;
+const double ZTNB::MAX_RANDOM_ALPHA = 10;
+
 
 /******************************************************************************
  * Static inline functions

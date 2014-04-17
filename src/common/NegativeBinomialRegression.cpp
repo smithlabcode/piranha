@@ -48,7 +48,7 @@ using std::string;
 using std::cerr;
 using std::endl;
 
-const double NegativeBinomialRegression::threshold;
+const double NegativeBinomialRegression::threshold = 0.001;
 
 /******************************************************************************
  * Simple inspectors

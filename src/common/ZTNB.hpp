@@ -112,11 +112,11 @@ public:
   
 private:
   /*** private constants ***/
-  static const double max_allowed_alpha = 1000;
-  static const double min_allowed_alpha = 1e-20;
-  static const double tolerance = 1e-10;
-  static const double MAX_RANDOM_MU = 100;
-  static const double MAX_RANDOM_ALPHA = 10;
+  static const double max_allowed_alpha;
+  static const double min_allowed_alpha;
+  static const double tolerance;
+  static const double MAX_RANDOM_MU;
+  static const double MAX_RANDOM_ALPHA;
 
   /*** private member functions ***/
   double score_fun_first_term(const vector<size_t> &vals_hist,

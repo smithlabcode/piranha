@@ -114,7 +114,7 @@ private:
   std::vector<double> mixing; 
   
   /* private constants */
-  const static double STOPPING_CRITERIA = 0.01;
+  const static double STOPPING_CRITERIA;
 };
 
 #endif

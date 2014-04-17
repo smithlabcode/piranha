@@ -57,16 +57,16 @@ using std::isfinite;
 using std::accumulate;
 using std::stringstream;
 
-const double ZTNBRegression::dispersonThreshold;
-const double ZTNBRegression::maxAlpha;
-const double ZTNBRegression::minAlpha;
-const double ZTNBRegression::maxZeroProb;
-const double ZTNBRegression::minZeroProb;
-const double ZTNBRegression::minVariance;
-const double ZTNBRegression::maxExpectedValue;
-const double ZTNBRegression::minZeroTolerance;
-const double ZTNBRegression::maxOneTolerance;
-const size_t ZTNBRegression::maxDispersionDampeningIters;
+const double ZTNBRegression::dispersonThreshold = 0.00000001;
+const double ZTNBRegression::maxAlpha = 100;
+const double ZTNBRegression::minAlpha = 1e-3;
+const double ZTNBRegression::maxZeroProb = 0.9999999999;
+const double ZTNBRegression::minZeroProb = 0.0000000001;
+const double ZTNBRegression::minVariance = 0.0000000001;
+const double ZTNBRegression::maxExpectedValue = 10000;
+const double ZTNBRegression::minZeroTolerance = 0.01;
+const double ZTNBRegression::maxOneTolerance = 0.99;
+const size_t ZTNBRegression::maxDispersionDampeningIters = 100;
 
 /******************************************************************************
  * Simple Inspectors

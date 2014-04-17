@@ -39,10 +39,10 @@
 
 class Gaussian : public Distribution {
 private:
-  // prviate constants
-  static const double threshold = 0.000001; 
-  static const double maxIter=100;
-  static const double tiny = 1e-254;
+  // private constants
+  static const double threshold;
+  static const double maxIter;
+  static const double tiny;
   
   // private instance variables
   double mean;

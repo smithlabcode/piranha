@@ -48,9 +48,10 @@ using std::cout;
 using std::cin;
 using std::endl;
 
-const double PoissonRegression::threshold;
-const double PoissonRegression::maxIter;
-const double PoissonRegression::tiny;
+// initialise static data members
+const double PoissonRegression::threshold = 0.000001;
+const double PoissonRegression::maxIter = 100;
+const double PoissonRegression::tiny = 1e-254;
 
 /******************************************************************************
  * Parameter estimation
