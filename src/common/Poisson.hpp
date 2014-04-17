@@ -70,7 +70,7 @@ private:
 
   /*** private static constants ***/
   /** \brief lambda won't exceed this value when randomise() is called **/
-  static const double MAX_RANDOM_LAMBDA = 10;
+  static const double MAX_RANDOM_LAMBDA;
 };
 
 #endif

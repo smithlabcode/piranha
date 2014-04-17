@@ -27,6 +27,7 @@
   \section history Revision History
 **/
 
+// from STL
 #include <vector>
 #include <sstream>
 #include <cmath>
@@ -45,8 +46,10 @@ using std::cout;
 using std::endl;
 using std::isfinite;
 
-const double ZeroTruncatedPoisson::tolerance;
-const double ZeroTruncatedPoisson::MAX_RANDOM_LAMBDA;
+// initialise static data members
+const double ZeroTruncatedPoisson::tolerance = 1e-20;
+const double ZeroTruncatedPoisson::MAX_RANDOM_LAMBDA = 100;
+
 
 /******************************************************************************
  * Static functions used in ZTP parameter estimation

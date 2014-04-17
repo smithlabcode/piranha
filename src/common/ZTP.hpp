@@ -77,9 +77,9 @@ private:
              only parameter **/
   double lambda;
   /** \brief tolerance for estimation of lambda by bisection algorithm **/
-  static const double tolerance = 1e-20;
+  static const double tolerance;
   /** \brief max value that can be given to lambda when randomise is called **/
-  static const double MAX_RANDOM_LAMBDA = 100;
+  static const double MAX_RANDOM_LAMBDA;
 };
 
 #endif

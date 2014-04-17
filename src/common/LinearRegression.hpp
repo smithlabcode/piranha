@@ -51,7 +51,7 @@ private:
   Gaussian helperG;
   
   // private constants
-  const static double minVar = 1e-100;
+  const static double minVar;
   
   // private member functions
   void estimateParamsOLS(const std::vector<double>& response, 

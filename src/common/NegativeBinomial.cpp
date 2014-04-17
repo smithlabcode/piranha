@@ -68,9 +68,10 @@ using std::max_element;
 using std::stringstream;
 using std::numeric_limits;
 
-const double NegativeBinomial::max_allowed_alpha;
-const double NegativeBinomial::min_allowed_alpha;
-const double NegativeBinomial::alpha_allowed_error;
+// initialise static data members
+const double NegativeBinomial::max_allowed_alpha = 100;
+const double NegativeBinomial::min_allowed_alpha = 1e-20;
+const double NegativeBinomial::alpha_allowed_error = 1e-10;
 
 /******************************************************************************
  * Simple inspectors

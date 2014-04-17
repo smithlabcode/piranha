@@ -47,6 +47,8 @@ using std::cin;
 using std::cerr;
 using std::endl;
 
+// initialise static data members
+const double LinearRegression::minVar = 1e-100;
 
 /****
  * @summary: load this linear regression model from an XML description 

@@ -72,9 +72,9 @@ public:
 
 private:
   /*** private constants ***/
-  const static double max_allowed_alpha = 100;
-  const static double min_allowed_alpha = 1e-20;
-  const static double alpha_allowed_error = 1e-10;
+  const static double max_allowed_alpha;
+  const static double min_allowed_alpha;
+  const static double alpha_allowed_error;
 
   /*** private member functions -- mutators ***/
   void setHelpers();

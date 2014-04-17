@@ -43,7 +43,8 @@ using std::cerr;
 using std::endl;
 using std::isfinite;
 
-const double Poisson::MAX_RANDOM_LAMBDA;
+// initialise static data members
+const double Poisson::MAX_RANDOM_LAMBDA = 10;
 
 /******************************************************************************
  * Simple inspectors
