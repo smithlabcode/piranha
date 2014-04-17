@@ -539,7 +539,7 @@ ZTNBRegression::Hessian(const vector<double>& response,
     // t may overflow for small alpha, if it does, it implies that the zero
     // probability is essentially zero and so the adjustment can safely be
     // set to zero, same if the denominator of the fraction overflows to inf
-    if (finite(t) && finite(denom)) {
+    if (isfinite(t) && isfinite(denom)) {
       // be careful with the division below..don't want frac == INF
       if (denom < ZTNBRegression::minZeroTolerance)
         denom = ZTNBRegression::minZeroTolerance;

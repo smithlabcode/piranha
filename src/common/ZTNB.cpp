@@ -511,7 +511,7 @@ ZTNB::operator()(const int val) const {
   const double P = (gsl_sf_lngamma(val + n_helper) - 
         gsl_sf_lnfact(static_cast<size_t>(val))) + 
     n_log_p_minus_lngamma_n_helper + val*log_q_helper;
-  if (!finite(P)) return -40;
+  if (!isfinite(P)) return -40;
   return P;
 }
 

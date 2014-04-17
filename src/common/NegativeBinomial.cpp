@@ -62,6 +62,7 @@ using std::string;
 using std::bind2nd;
 using std::divides;
 using std::istream;
+using std::isfinite;
 using std::make_pair;
 using std::accumulate;
 using std::max_element;
@@ -170,7 +171,7 @@ NegativeBinomial::loglikelihood(const double x) const {
   const double P = (gsl_sf_lngamma(x + n_helper) - 
                    gsl_sf_lnfact(static_cast<size_t>(x))) +
                    n_log_p_minus_lngamma_n_helper + x*log_q_helper;
-  if (!finite(P)) return -40;
+  if (!isfinite(P)) return -40;
   return P;
 }
 

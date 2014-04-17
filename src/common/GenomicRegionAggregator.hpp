@@ -144,7 +144,7 @@ public :
       clusterEnd_covars.push_back(c_starts[i]);
     }
 
-    gIter it_region = r_start;
+    //gIter it_region = r_start;
     dIter it_pval = p_start;
     std::vector<dIter> it_covars;
     for (size_t i=0; i<c_starts.size(); ++i) it_covars.push_back(c_starts[i]);
