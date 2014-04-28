@@ -1,0 +1,35 @@
+# Compiled Object files
+*.slo
+*.lo
+*.o
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dSYM
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+
+# Eclipse project files
+*.cproject
+*.project
+
+# Files built by the configure script
+/Makefile
+/src/Makefile
+/config.log
+/src/common/Makefile
+/src/common/config.hpp
+/src/progs/Makefile
+/config.status
+/src/test/Makefile
+/src/test/regressionTests.xml
+
+# Executables and directories made during 
+# building or testing 
+/bin/
+src/progs/Piranha
+src/progs/Simulate
