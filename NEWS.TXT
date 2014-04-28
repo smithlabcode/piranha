@@ -10,7 +10,7 @@ New in Piranha v1.2.0
     multiple hypothesis testing using the method of Benjamini and Hochberg.
     This can be turned off using the -c option, which will make Piranha 
     output uncorrected p-values. 
-  * By default , only the smallest 99% of positions are now used for fitting; 
+  * By default, only the smallest 99% of positions are now used for fitting; 
     they are considered to represent the background. This value was empirically 
     arrived at by analysis of a collection of CLIP-Seq datasets. However, 
     it can be manually set using the new -a option. To use all of the input 
