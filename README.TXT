@@ -17,7 +17,7 @@ Copyright (C) 2012
 University of Southern California,
 Philip J. Uren, Andrew D. Smith
   
-Authors: Philip J. Uren, Andrew D. Smith
+Authors: Philip J. Uren, Emad Bahrami-Samani, Andrew D. Smith
   
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
