@@ -64,6 +64,7 @@ using std::stringstream;
 void
 ReadBinner::binReads(const vector<GenomicRegion> &reads,
                            vector<GenomicRegion> &bins,
+                     const bool UNSTRANDED,
                      const size_t pseudoCount) const {
   if (!check_sorted(reads)) {
     stringstream ss;
@@ -80,7 +81,7 @@ ReadBinner::binReads(const vector<GenomicRegion> &reads,
   splitByChrom_sorted(reads, separated_by_chrom);
 
   for (size_t i = 0; i < separated_by_chrom.size(); ++i) {
-    binChromosome(separated_by_chrom[i], bins, pseudoCount);
+    binChromosome(separated_by_chrom[i], bins, UNSTRANDED, pseudoCount);
   }
 }
 
@@ -100,6 +101,7 @@ void
 ReadBinner::binReads(const vector<GenomicRegion> &reads,
                            vector<GenomicRegion> &bins,
                      const vector<GenomicRegion> &requiredBins,
+                     const bool UNSTRANDED,
                      const size_t pseudoCount) const {
   if (!check_sorted(reads)) {
     stringstream ss;
@@ -131,14 +133,14 @@ ReadBinner::binReads(const vector<GenomicRegion> &reads,
       // have reads and required bins on this chrom
       binChromosome(separated_by_chrom[readsChromIdx], bins,
                     required_by_chrom[requiredChromIdx],
-                    pseudoCount);
+                    UNSTRANDED, pseudoCount);
       readsChromIdx += 1;
       requiredChromIdx += 1;
     } else if ((readsChromIdx < separated_by_chrom.size()) &&
         ((requiredChromIdx == required_by_chrom.size()) ||
          (cnReads < cnReqd))) {
       // have reads on this chrom, but no required bins
-      binChromosome(separated_by_chrom[readsChromIdx], bins, pseudoCount);
+      binChromosome(separated_by_chrom[readsChromIdx], bins, UNSTRANDED, pseudoCount);
       readsChromIdx += 1;
     } else if ((requiredChromIdx < required_by_chrom.size()) &&
         ((readsChromIdx == separated_by_chrom.size()) ||
@@ -171,30 +173,60 @@ ReadBinner::binReads(const vector<GenomicRegion> &reads,
 void
 ReadBinner::binChromosome(const vector<GenomicRegion> &reads,
                                 vector<GenomicRegion> &bins,
+                          const bool UNSTRANDED,
                           const size_t pseudoCount) const {
   if (reads.size() == 0) return;
   size_t lim = reads.back().get_end();
   size_t read_idx = 0;
   string chromName = reads.front().get_chrom();
 
-  for (size_t j = 0; j < lim; j += this->binSize) {
-    size_t counts = 0;
-    while (read_idx < reads.size() &&
-           reads[read_idx].get_start() < j + this->binSize) {
-      if (reads[read_idx].get_start() >= j) ++counts;
-      ++read_idx;
+  if (UNSTRANDED) {
+    for (size_t j = 0; j < lim; j += this->binSize) {
+      size_t counts = 0;
+      while (read_idx < reads.size() &&
+             reads[read_idx].get_start() < j + this->binSize) {
+        if (reads[read_idx].get_start() >= j)
+          ++counts;
+        ++read_idx;
 
-      if ((read_idx != reads.size()) &&
-          (reads[read_idx].get_chrom() != chromName)) {
-        stringstream ss;
-        ss << "binning reads failed. Reason: binChromosome called with reads "
-           << "from multiple chromosomes";
-        throw SMITHLABException(ss.str());
+        if ((read_idx != reads.size()) &&
+            (reads[read_idx].get_chrom() != chromName)) {
+          stringstream ss;
+          ss << "binning reads failed. Reason: binChromosome called with reads "
+             << "from multiple chromosomes";
+          throw SMITHLABException(ss.str());
+        }
       }
+      if (counts > 0)
+        bins.push_back(GenomicRegion(chromName, j, j+this->binSize, "X",
+                                         counts + pseudoCount, '+'));
     }
-    if (counts > 0) {
-      bins.push_back(GenomicRegion(chromName, j, j+this->binSize, "X",
-                                       counts + pseudoCount, '+'));
+  } else {
+    for (size_t j = 0; j < lim; j += this->binSize) {
+      size_t counts_pos = 0;
+      size_t counts_neg = 0;
+      while (read_idx < reads.size() &&
+             reads[read_idx].get_start() < j + this->binSize) {
+        if (reads[read_idx].get_start() >= j) {
+          if (reads[read_idx].pos_strand()) ++counts_pos;
+          else ++counts_neg;
+        }
+        ++read_idx;
+  
+        if ((read_idx != reads.size()) &&
+            (reads[read_idx].get_chrom() != chromName)) {
+          stringstream ss;
+          ss << "binning reads failed. Reason: binChromosome called with reads "
+             << "from multiple chromosomes";
+          throw SMITHLABException(ss.str());
+        }
+      }
+      if (counts_pos > 0)
+        bins.push_back(GenomicRegion(chromName, j, j+this->binSize, "X",
+                                       counts_pos + pseudoCount, '+'));
+      if (counts_neg > 0)
+        bins.push_back(GenomicRegion(chromName, j, j+this->binSize, "X",
+                                         counts_neg + pseudoCount, '-'));
     }
   }
 }
@@ -219,10 +251,11 @@ void
 ReadBinner::binChromosome(const vector<GenomicRegion> &reads,
                                 vector<GenomicRegion> &bins,
                           const vector<GenomicRegion> &requiredBins,
+                          const bool UNSTRANDED,
                           const size_t pseudoCount) const {
   if (reads.size() == 0) return;
   if (requiredBins.size() == 0) {
-    binChromosome(reads, bins, pseudoCount);
+    binChromosome(reads, bins, UNSTRANDED,pseudoCount);
   } else {
     string chromName = reads.front().get_chrom();
     size_t requiredIdx = 0;
@@ -237,54 +270,114 @@ ReadBinner::binChromosome(const vector<GenomicRegion> &reads,
     }
 
     size_t lim = reads.back().get_end();
-    for (size_t j = 0; j < lim; j += this->binSize) {
-      size_t counts = 0;
-      while (readsIdx < reads.size() &&
-             reads[readsIdx].get_start() < j + this->binSize) {
-        if (reads[readsIdx].get_start() >= j) ++counts;
-        ++readsIdx;
+    if (UNSTRANDED) {
+      for (size_t j = 0; j < lim; j += this->binSize) {
+        size_t counts = 0;
+        while (readsIdx < reads.size() &&
+               reads[readsIdx].get_start() < j + this->binSize) {
+          if (reads[readsIdx].get_start() >= j)
+            ++counts;
+          ++readsIdx;
 
-        if ((readsIdx != reads.size()) &&
-            (reads[readsIdx].get_chrom() != chromName)) {
-          stringstream ss;
-          ss << "binning reads failed. Reason: binChromosome called with "
-             << "reads from multiple chromosomes";
-          throw SMITHLABException(ss.str());
-        }
-      }
-
-      // count warrants inclusion of this bin
-      if (counts > 0) {
-        bins.push_back(GenomicRegion(chromName, j, j+this->binSize, "X",
-                                     counts + pseudoCount, '+'));
-      }
-
-      // this is a required bin
-      if ((requiredIdx != requiredBins.size()) &&
-          (requiredStart == j) && (requiredEnd == j + this->binSize)) {
-        if (counts == 0)
-          bins.push_back(GenomicRegion(chromName, j, j+this->binSize, "X",
-                                       pseudoCount, '+'));
-        requiredIdx += 1;
-        if (requiredIdx != requiredBins.size()) {
-          requiredStart = requiredBins[requiredIdx].get_start();
-          requiredEnd = requiredBins[requiredIdx].get_end();
-          if (requiredEnd - requiredStart != this->binSize) {
-            stringstream ss;
-            ss << "binning reads failed. Reason: size of required bins doesn't "
-               << "match size of actual bins";
-            throw SMITHLABException(ss.str());
-          }
-          if (requiredBins[requiredIdx].get_chrom() != chromName) {
+          if ((readsIdx != reads.size()) &&
+              (reads[readsIdx].get_chrom() != chromName)) {
             stringstream ss;
             ss << "binning reads failed. Reason: binChromosome called with "
                << "reads from multiple chromosomes";
             throw SMITHLABException(ss.str());
           }
         }
+
+        // count warrants inclusion of this bin
+        if (counts > 0)
+          bins.push_back(GenomicRegion(chromName, j, j+this->binSize, "X",
+                                       counts + pseudoCount, '+'));
+
+        // this is a required bin
+        if ((requiredIdx != requiredBins.size()) &&
+            (requiredStart == j) && (requiredEnd == j + this->binSize)) {
+          if (counts == 0)
+            bins.push_back(GenomicRegion(chromName, j, j+this->binSize, "X",
+                                         pseudoCount, '+'));
+          requiredIdx += 1;
+          if (requiredIdx != requiredBins.size()) {
+            requiredStart = requiredBins[requiredIdx].get_start();
+            requiredEnd = requiredBins[requiredIdx].get_end();
+            if (requiredEnd - requiredStart != this->binSize) {
+              stringstream ss;
+              ss << "binning reads failed. Reason: size of required bins doesn't "
+                 << "match size of actual bins";
+              throw SMITHLABException(ss.str());
+            }
+            if (requiredBins[requiredIdx].get_chrom() != chromName) {
+              stringstream ss;
+              ss << "binning reads failed. Reason: binChromosome called with "
+                 << "reads from multiple chromosomes";
+              throw SMITHLABException(ss.str());
+            }
+          }
+        }
+      }
+    } else {
+      for (size_t j = 0; j < lim; j += this->binSize) {
+        size_t counts_pos = 0;
+        size_t counts_neg = 0;
+        while (readsIdx < reads.size() &&
+               reads[readsIdx].get_start() < j + this->binSize) {
+          if (reads[readsIdx].get_start() >= j) {
+            if (reads[readsIdx].pos_strand()) ++counts_pos;
+            else ++counts_neg;
+          }
+          ++readsIdx;
+
+          if ((readsIdx != reads.size()) &&
+              (reads[readsIdx].get_chrom() != chromName)) {
+            stringstream ss;
+            ss << "binning reads failed. Reason: binChromosome called with "
+               << "reads from multiple chromosomes";
+            throw SMITHLABException(ss.str());
+          }
+        }
+
+        // count warrants inclusion of this bin
+        if (counts_pos > 0) {
+          bins.push_back(GenomicRegion(chromName, j, j+this->binSize, "X",
+                                       counts_pos + pseudoCount, '+'));
+        }
+        if (counts_neg > 0) {
+          bins.push_back(GenomicRegion(chromName, j, j+this->binSize, "X",
+                                       counts_neg + pseudoCount, '-'));
+        }
+
+        // this is a required bin
+        if ((requiredIdx != requiredBins.size()) &&
+            (requiredStart == j) && (requiredEnd == j + this->binSize)) {
+          if (counts_pos == 0)
+            bins.push_back(GenomicRegion(chromName, j, j+this->binSize, "X",
+                                         pseudoCount, '+'));
+          if (counts_neg == 0)
+            bins.push_back(GenomicRegion(chromName, j, j+this->binSize, "X",
+                                         pseudoCount, '-'));
+          requiredIdx += 1;
+          if (requiredIdx != requiredBins.size()) {
+            requiredStart = requiredBins[requiredIdx].get_start();
+            requiredEnd = requiredBins[requiredIdx].get_end();
+            if (requiredEnd - requiredStart != this->binSize) {
+              stringstream ss;
+              ss << "binning reads failed. Reason: size of required bins doesn't "
+                 << "match size of actual bins";
+              throw SMITHLABException(ss.str());
+            }
+            if (requiredBins[requiredIdx].get_chrom() != chromName) {
+              stringstream ss;
+              ss << "binning reads failed. Reason: binChromosome called with "
+                 << "reads from multiple chromosomes";
+              throw SMITHLABException(ss.str());
+            }
+          }
+        }
       }
     }
-
     // pick up any required bins that come after the last read
     for (size_t j = requiredIdx; j < requiredBins.size(); ++j) {
       GenomicRegion tmp(requiredBins[j]);

@@ -90,7 +90,7 @@
   <test>
     <name> Simple ZTNB Test 2, corrected pvals </name>
     <command>
-      ../../bin/Piranha -u 0 -a 1 -d ZeroTruncatedNegativeBinomial
+      ../../bin/Piranha -u 0 -a 1 -x -d ZeroTruncatedNegativeBinomial
       regressionTestInputs/ztnbSimpleTest2_response.dat
     </command>
     <expected> regressionTestOutputs/ztnbSimpleTest_correctedPvals_output.expected </expected>
@@ -108,7 +108,7 @@
   <test>
     <name> Simple ZTNB Test 3 </name>
     <command>
-		      ../../bin/Piranha -u 0 -c -a 1 -p 1 
+		      ../../bin/Piranha -u 0 -c -a 1 -p 1 -x 
 	        regressionTestInputs/ztnbSimpleTest2_response.dat
     </command>
     <expected> regressionTestOutputs/ztnbSimpleTest2_output.expected </expected>
@@ -286,7 +286,7 @@
   <test>
     <name> ZTNB Regression Test 3 </name> 
 	<command> 
-	  ../../bin/Piranha -r -a 1 -c -p 1 -d ZeroTruncatedNegativeBinomialRegression 
+	  ../../bin/Piranha -r -a 1 -c -p 1 -x -d ZeroTruncatedNegativeBinomialRegression 
 	  regressionTestInputs/ZTNBRegressionTest3_response.dat
 	  regressionTestInputs/ZTNBRegressionTest3_covariate1.dat
 	</command>
@@ -309,6 +309,24 @@
 	</command>
 	<expected>
 	  regressionTestOutputs/ZTNBRegressionTest4_output.expected
+	</expected>
+  </test>
+    <name> Simple ZTNB Test 5, preserving the strand </name>
+    <command>
+		      ../../bin/Piranha -u 0 -c -a 1 -p 1 
+	        regressionTestInputs/ztnbSimpleTest5_response.dat
+    </command>
+    <expected> regressionTestOutputs/ztnbSimpleTest5_output.expected </expected>
+  </test>
+  <test>
+    <name> ZTNB Regression Test 5, preserving the strand </name>
+	<command> 
+	  ../../bin/Piranha -r -a 1 -c -p 1 -d ZeroTruncatedNegativeBinomialRegression 
+	  regressionTestInputs/ZTNBRegressionTest5_response.dat
+	  regressionTestInputs/ZTNBRegressionTest5_covariate1.dat
+	</command>
+    <expected>
+	  regressionTestOutputs/ZTNBRegressionTest5_output.expected
 	</expected>
   </test>
 </regressionTests>

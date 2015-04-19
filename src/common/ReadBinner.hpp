@@ -46,18 +46,22 @@ public:
   ReadBinner(size_t bsize) : binSize(bsize) {};
   void binReads(const std::vector<GenomicRegion> &reads,
                       std::vector<GenomicRegion> &bins,
+                      const bool UNSTRANDED,
                       const size_t pseudoCount=0) const;
   void binReads(const std::vector<GenomicRegion> &reads,
                       std::vector<GenomicRegion> &bins,
                 const std::vector<GenomicRegion> &requiredBins,
+                const bool UNSTRANDED,
                 const size_t pseudoCount=0) const;
 private:
   void binChromosome(const std::vector<GenomicRegion> &reads,
                      std::vector<GenomicRegion> &bins,
+                     const bool UNSTRANDED,
                      const size_t pseudoCount=0) const;
   void binChromosome(const std::vector<GenomicRegion> &reads,
                      std::vector<GenomicRegion> &bins,
                      const std::vector<GenomicRegion> &requiredBins,
+                     const bool UNSTRANDED,
                      const size_t pseudoCount=0) const;
   void splitByChrom_sorted(const std::vector<GenomicRegion> &input,
                            std::vector< std::vector<GenomicRegion> > &res) const;

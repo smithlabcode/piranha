@@ -62,7 +62,41 @@ TEST(ReadBinnerTest, testSingleNucBin) {
 
   vector<GenomicRegion> got;
   ReadBinner r(1);
-  r.binReads(input, got);
+  const bool UNSTRANDED = true;
+  r.binReads(input, got, UNSTRANDED, 0);
+
+  EXPECT_EQ(got.size(), expect.size());
+  if (got.size(), expect.size()) {
+    for (size_t i = 0; i < expect.size(); i++) {
+      EXPECT_EQ(expect[i], got[i]);
+    }
+  }
+}
+
+TEST(ReadBinnerTestStrand, testPreservingStrand) {
+  vector<GenomicRegion> input;
+  input.push_back(GenomicRegion("chr1", 2, 5,  "X", 0, '+'));
+  input.push_back(GenomicRegion("chr1", 3, 5,  "X", 0, '+'));
+  input.push_back(GenomicRegion("chr1", 5, 7,  "X", 0, '+'));
+  input.push_back(GenomicRegion("chr1", 6, 8,  "X", 0, '+'));
+  input.push_back(GenomicRegion("chr1", 9, 11, "X", 0, '-'));
+  input.push_back(GenomicRegion("chr2", 5, 7,  "X", 0, '+'));
+  input.push_back(GenomicRegion("chr2", 6, 7,  "X", 0, '+'));
+  input.push_back(GenomicRegion("chr2", 6, 8,  "X", 0, '+'));
+
+  vector<GenomicRegion> expect;
+  expect.push_back(GenomicRegion("chr1", 2, 3,   "X", 1, '+'));
+  expect.push_back(GenomicRegion("chr1", 3, 4,   "X", 1, '+'));
+  expect.push_back(GenomicRegion("chr1", 5, 6,   "X", 1, '+'));
+  expect.push_back(GenomicRegion("chr1", 6, 7,   "X", 1, '+'));
+  expect.push_back(GenomicRegion("chr1", 9, 10,  "X", 1, '-'));
+  expect.push_back(GenomicRegion("chr2", 5, 6,   "X", 1, '+'));
+  expect.push_back(GenomicRegion("chr2", 6, 7,   "X", 2, '+'));
+
+  vector<GenomicRegion> got;
+  ReadBinner r(1);
+  const bool UNSTRANDED = false;
+  r.binReads(input, got, UNSTRANDED, 0);
 
   EXPECT_EQ(got.size(), expect.size());
   if (got.size(), expect.size()) {
@@ -114,7 +148,8 @@ TEST(ReadBinnerTest, testTwoNucBin_require) {
 
   vector<GenomicRegion> got;
   ReadBinner r(2);
-  r.binReads(input, got, requiredBins, 1);
+  const bool UNSTRANDED = true;
+  r.binReads(input, got, requiredBins, UNSTRANDED, 1);
 
   EXPECT_EQ(got.size(), expect.size());
   if (got.size(), expect.size()) {
@@ -247,10 +282,11 @@ TEST(ReadBinnerTest, testSplitByChromBug) {
 
   vector<GenomicRegion> gotBinnedResponses;
   ReadBinner r(50);
-  r.binReads(input, gotBinnedResponses, 0);
+  const bool UNSTRANDED = true;
+  r.binReads(input, gotBinnedResponses, UNSTRANDED, 0);
   EXPECT_EQ(gotBinnedResponses, expectReq);
 
   vector<GenomicRegion> gotCovarBinned;
-  r.binReads(covar, gotCovarBinned, gotBinnedResponses, 1);
+  r.binReads(covar, gotCovarBinned, gotBinnedResponses, UNSTRANDED, 1);
   EXPECT_EQ(gotCovarBinned, expectCovarBinned);
 }
