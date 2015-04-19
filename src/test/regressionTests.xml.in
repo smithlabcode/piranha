@@ -311,6 +311,7 @@
 	  regressionTestOutputs/ZTNBRegressionTest4_output.expected
 	</expected>
   </test>
+  <test>
     <name> Simple ZTNB Test 5, preserving the strand </name>
     <command>
 		      ../../bin/Piranha -u 0 -c -a 1 -p 1 
