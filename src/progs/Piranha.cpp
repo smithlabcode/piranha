@@ -591,7 +591,6 @@ splitResponsesAndCovariates(vector<double> &allResponses,
 static void
 FindPeaksSingleComponentRegression(const bool VERBOSE, const bool FITONLY,
                                    const bool NO_PVAL_CORRECT,
-                                   const bool UNSTRANDED,
                                    const bool CLUSTER_SUMMIT,
                                    const bool SUPRESS_COVARS,
                                    const size_t summitPadding,
@@ -713,89 +712,6 @@ FindPeaksSingleComponentRegression(const bool VERBOSE, const bool FITONLY,
     // TODO proper runtime polymorphims here...
     cerr << "suppress covars is: " << SUPRESS_COVARS << endl;
 
-    if (UNSTRANDED) {
-    if (CLUSTER_SUMMIT) {
-      if (SUPRESS_COVARS) {
-        if (summitPadding == 0) {
-          if (flanking_fn.empty()) {
-            GenomicRegionAggregator(clusterDist).aggregate(sites.begin(),
-              sites.end(), pvals.begin(), pvals.end(), pThresh,
-              ClusterSummitPrinter(ostrm, ClusterSummitPrinter::CLUSTER_MIN_SCORE));
-          } else {
-            ofstream flank_strm(flanking_fn.c_str());
-            GenomicRegionAggregator(clusterDist).aggregate(sites.begin(),
-              sites.end(), pvals.begin(), pvals.end(), pThresh,
-              ClusterSummitPrinter(ostrm, ClusterSummitPrinter::CLUSTER_MIN_SCORE),
-              FlankingPrinter(flank_strm, flanking_pad, flanking_size));
-          }
-        } else {
-          if (flanking_fn.empty()) {
-            GenomicRegionAggregator(clusterDist).aggregate(sites.begin(),
-              sites.end(), pvals.begin(), pvals.end(), pThresh,
-              PaddedClusterSummitPrinter(ostrm, ClusterSummitPrinter::CLUSTER_MIN_SCORE, summitPadding));
-          } else {
-            ofstream flank_strm(flanking_fn.c_str());
-            GenomicRegionAggregator(clusterDist).aggregate(sites.begin(),
-              sites.end(), pvals.begin(), pvals.end(), pThresh,
-              PaddedClusterSummitPrinter(ostrm, ClusterSummitPrinter::CLUSTER_MIN_SCORE, summitPadding),
-              FlankingPrinter(flank_strm, flanking_pad, flanking_size));
-          }
-        }
-      } else {
-        if (summitPadding == 0) {
-          if (flanking_fn.empty()) {
-            GenomicRegionAggregator(clusterDist).aggregate(sites.begin(),
-              sites.end(), pvals.begin(), pvals.end(), c_starts, c_ends, pThresh,
-              ClusterSummitPrinter(ostrm, ClusterSummitPrinter::CLUSTER_MIN_SCORE));
-          } else {
-            ofstream flank_strm(flanking_fn.c_str());
-            GenomicRegionAggregator(clusterDist).aggregate(sites.begin(),
-              sites.end(), pvals.begin(), pvals.end(), c_starts, c_ends, pThresh,
-              ClusterSummitPrinter(ostrm, ClusterSummitPrinter::CLUSTER_MIN_SCORE),
-              FlankingPrinter(flank_strm, flanking_pad, flanking_size));
-          }
-        } else {
-          if (flanking_fn.empty()) {
-            GenomicRegionAggregator(clusterDist).aggregate(sites.begin(),
-              sites.end(), pvals.begin(), pvals.end(), c_starts, c_ends, pThresh,
-              PaddedClusterSummitPrinter(ostrm, ClusterSummitPrinter::CLUSTER_MIN_SCORE, summitPadding));
-          } else {
-            ofstream flank_strm(flanking_fn.c_str());
-            GenomicRegionAggregator(clusterDist).aggregate(sites.begin(),
-              sites.end(), pvals.begin(), pvals.end(), c_starts, c_ends, pThresh,
-              PaddedClusterSummitPrinter(ostrm, ClusterSummitPrinter::CLUSTER_MIN_SCORE, summitPadding),
-              FlankingPrinter(flank_strm, flanking_pad, flanking_size));
-          }
-        }
-      }
-    } else {
-      if (SUPRESS_COVARS) {
-        if (flanking_fn.empty()) {
-          GenomicRegionAggregator(clusterDist).aggregate(sites.begin(),
-            sites.end(), pvals.begin(), pvals.end(),
-            pThresh, ClusterLimitsPrinter(ostrm));
-        } else {
-          ofstream flank_strm(flanking_fn.c_str());
-          GenomicRegionAggregator(clusterDist).aggregate(sites.begin(),
-            sites.end(), pvals.begin(), pvals.end(),
-            pThresh, ClusterLimitsPrinter(ostrm),
-            FlankingPrinter(flank_strm, flanking_pad, flanking_size));
-        }
-      } else {
-        if (flanking_fn.empty()) {
-          GenomicRegionAggregator(clusterDist).aggregate(sites.begin(),
-            sites.end(), pvals.begin(), pvals.end(),
-            c_starts, c_ends, pThresh, ClusterLimitsPrinter(ostrm));
-        } else {
-          ofstream flank_strm(flanking_fn.c_str());
-          GenomicRegionAggregator(clusterDist).aggregate(sites.begin(),
-            sites.end(), pvals.begin(), pvals.end(),
-            c_starts, c_ends, pThresh, ClusterLimitsPrinter(ostrm),
-            FlankingPrinter(flank_strm, flanking_pad, flanking_size));
-        }
-      }
-    }
-    } else {
     vector<double> pvals_pos, pvals_neg;
     vector<GenomicRegion> sites_pos, sites_neg;
     vector<vector<double>::const_iterator> c_starts_pos, c_starts_neg, c_ends_pos, c_ends_neg;
@@ -961,7 +877,6 @@ FindPeaksSingleComponentRegression(const bool VERBOSE, const bool FITONLY,
         }
       }
     }
-    }
   }
 
   // cleanup and we're done
@@ -990,7 +905,6 @@ FindPeaksSingleComponentRegression(const bool VERBOSE, const bool FITONLY,
 static void 
 FindPeaksSingleComponentSimple(const bool VERBOSE, const bool FITONLY,
                                const bool NO_PVAL_CORRECT,
-                               const bool UNSTRANDED,
                                const bool CLUSTER_SUMMIT,
                                const size_t summitPadding,
                                const string &distType, const string &modelfn,
@@ -1048,47 +962,6 @@ FindPeaksSingleComponentSimple(const bool VERBOSE, const bool FITONLY,
     // is in the bg vectors, fg ones are empty
     mergeResponsesPvals(fgSites, sites, fg_pvals, bg_pvals);
 
-    if (UNSTRANDED) {
-    if (CLUSTER_SUMMIT) {
-      if (summitPadding == 0)
-        if (flanking_fn.empty()) {
-          GenomicRegionAggregator(clusterDist).aggregate(sites.begin(), sites.end(),
-              bg_pvals.begin(), bg_pvals.end(), pThresh,
-              ClusterSummitPrinter(ostrm, ClusterSummitPrinter::CLUSTER_MIN_SCORE));
-        } else {
-          ofstream flank_strm(flanking_fn.c_str());
-          GenomicRegionAggregator(clusterDist).aggregate(sites.begin(), sites.end(),
-              bg_pvals.begin(), bg_pvals.end(), pThresh,
-              ClusterSummitPrinter(ostrm, ClusterSummitPrinter::CLUSTER_MIN_SCORE),
-              FlankingPrinter(flank_strm, flanking_pad, flanking_size));
-        }
-      else
-        if (flanking_fn.empty()) {
-          GenomicRegionAggregator(clusterDist).aggregate(sites.begin(), sites.end(),
-              bg_pvals.begin(), bg_pvals.end(), pThresh,
-              PaddedClusterSummitPrinter(ostrm, ClusterSummitPrinter::CLUSTER_MIN_SCORE, summitPadding));
-        } else {
-          ofstream flank_strm(flanking_fn.c_str());
-          GenomicRegionAggregator(clusterDist).aggregate(sites.begin(), sites.end(),
-              bg_pvals.begin(), bg_pvals.end(), pThresh,
-              PaddedClusterSummitPrinter(ostrm, ClusterSummitPrinter::CLUSTER_MIN_SCORE, summitPadding),
-              FlankingPrinter(flank_strm, flanking_pad, flanking_size));
-        }
-    } else {
-      if (flanking_fn.empty()) {
-        GenomicRegionAggregator(clusterDist).aggregate(sites.begin(),
-            sites.end(), bg_pvals.begin(), bg_pvals.end(),
-            pThresh, ClusterLimitsPrinter(ostrm));
-      } else {
-        ofstream flank_strm(flanking_fn.c_str());
-        GenomicRegionAggregator(clusterDist).aggregate(sites.begin(),
-            sites.end(), bg_pvals.begin(), bg_pvals.end(),
-            pThresh, ClusterLimitsPrinter(ostrm),
-            FlankingPrinter(flank_strm, flanking_pad, flanking_size));
-      }
-    }
-    }
-    else {
     vector<double> bg_pvals_pos, bg_pvals_neg;
     vector<GenomicRegion> sites_pos, sites_neg; 
 
@@ -1181,7 +1054,6 @@ FindPeaksSingleComponentSimple(const bool VERBOSE, const bool FITONLY,
               FlankingPrinter(flank_strm, flanking_pad, flanking_size));
         }
       }
-    }
     }
   }
 
@@ -1438,7 +1310,7 @@ main(int argc, const char* argv[]) {
         vector<double> fgResponses;
         splitResponses(responses, sites, fgResponses, fgSites, bgThresh,
                               VERBOSE);
-        FindPeaksSingleComponentSimple(VERBOSE, FITONLY, NO_PVAL_CORRECT, UNSTRANDED,
+        FindPeaksSingleComponentSimple(VERBOSE, FITONLY, NO_PVAL_CORRECT,
                               CLUSTER_SUMMIT, summit_padding_amount, distType,
                               modelfn, sites, fgSites, responses, fgResponses,
                               pthresh, cluster_dist, ostrm, flanking_fn, flanking_buffer_size, flanking_size);
@@ -1451,7 +1323,7 @@ main(int argc, const char* argv[]) {
         vector< vector<double> > fgCovariates;
         splitResponsesAndCovariates(responses, covariates, sites, fgResponses,
                               fgCovariates, fgSites, bgThresh, VERBOSE);
-        FindPeaksSingleComponentRegression(VERBOSE, FITONLY, NO_PVAL_CORRECT, UNSTRANDED,
+        FindPeaksSingleComponentRegression(VERBOSE, FITONLY, NO_PVAL_CORRECT,
                               CLUSTER_SUMMIT, SUPRESS_COVARS, summit_padding_amount, sites, fgSites,
                               responses, fgResponses, covariates,
                               fgCovariates, FittingMethod(fittingMethodStr),
