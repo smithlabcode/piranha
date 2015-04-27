@@ -6,7 +6,7 @@
                    | |    | | | | (_| | | | | | | | (_| | 
                    |_|    |_|_|  \__,_|_| |_|_| |_|\__,_|
                    **************************************
-                   *               V1.2.0               *
+                   *               V1.2.1               *
                    ************************************** 
                                         
 
@@ -185,6 +185,8 @@ Options:
   -m, -model              Use the specified model file instead of fitting to 
                           input data 
   -v, -VERBOSE            output additional messages about run to stderr if set 
+  -x, -unstranded         Don't preserve strand (puts all the peaks in positive 
+                          strand) 
   -n, -no_normalisation   don't normalise covariates 
 
 Help options:

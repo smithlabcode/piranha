@@ -1,7 +1,10 @@
 ################################# PIRANHA NEWS #################################
 
-New in Piranha v1.2.0
+New in Piranha v1.2.1
   * This news file was added to keep track of updates to Piranha 
+  * Piranha now preserves the strand by default. If user wishes to output all 
+    the peaks on positive strand, the -x option will do so.
+New in Piranha v1.2.0
   * Piranha now outputs only the significant sites as per a threshold on the 
     p-value of a site. By default that threshold is 0.01, but it can be set 
     using the new option -p. To make piranha output all of the sites (i.e. 
