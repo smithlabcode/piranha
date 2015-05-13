@@ -318,6 +318,7 @@ loadCovariates(const vector<string> &filenames,
                const bool SORT=false,
                const bool LOG=false,
                const bool NORMALISE_COVARS=true,
+               const bool UNSTRANDED = false,
                const bool VERBOSE=false) {
   if (filenames.size() <= 0) {
     stringstream ss;
@@ -367,7 +368,7 @@ loadCovariates(const vector<string> &filenames,
       cerr << "binning" << endl;
       vector<GenomicRegion> binned;
       ReadBinner b(binSize);
-      b.binReads(covTmp, binned, sites, 1);
+      b.binReads(covTmp, binned, sites, UNSTRANDED, 1);
       swap(binned, covTmp);
     }
 
@@ -704,10 +705,20 @@ FindPeaksSingleComponentRegression(const bool VERBOSE, const bool FITONLY,
     mergeResponsesCovariatesPvals(fgSites, sites, fg_pvals, pvals, fgCovariates, covariates);
 
     // finally, identify clusters and output to the ostream
-    vector<vector<double>::const_iterator> c_starts, c_ends;
+    vector< vector<double> > covariates_pos, covariates_neg;
     for (size_t i=0; i<covariates.size(); i++) {
-      c_starts.push_back(covariates[i].begin());
-      c_ends.push_back(covariates[i].end());
+      vector<double> tmp_pos;
+      vector<double> tmp_neg;
+      for (size_t j=0; j<covariates[i].size(); j++) {
+        if (sites[j].pos_strand())
+          tmp_pos.push_back(covariates[i][j]);
+        else
+          tmp_neg.push_back(covariates[i][j]);
+      }
+      covariates_pos.push_back(tmp_pos);
+      covariates_neg.push_back(tmp_neg);
+      tmp_pos.clear();
+      tmp_neg.clear();
     }
     // TODO proper runtime polymorphims here...
     cerr << "suppress covars is: " << SUPRESS_COVARS << endl;
@@ -716,17 +727,20 @@ FindPeaksSingleComponentRegression(const bool VERBOSE, const bool FITONLY,
     vector<GenomicRegion> sites_pos, sites_neg;
     vector<vector<double>::const_iterator> c_starts_pos, c_starts_neg, c_ends_pos, c_ends_neg;
 
+    for (size_t i=0; i<covariates.size(); i++) {
+      c_starts_pos.push_back(covariates_pos[i].begin());
+      c_starts_neg.push_back(covariates_neg[i].begin());
+      c_ends_pos.push_back(covariates_pos[i].end());
+      c_ends_neg.push_back(covariates_neg[i].end());
+    }
+
     for (size_t i=0; i<sites.size(); i++) {
       if (sites[i].pos_strand()) {
         sites_pos.push_back(sites[i]);
         pvals_pos.push_back(pvals[i]);
-        c_starts_pos.push_back(covariates[i].begin());
-        c_ends_pos.push_back(covariates[i].end());
       } else {
         sites_neg.push_back(sites[i]);
         pvals_neg.push_back(pvals[i]);
-        c_starts_neg.push_back(covariates[i].begin());
-        c_ends_neg.push_back(covariates[i].end());
       }
     }
 
@@ -1259,7 +1273,7 @@ main(int argc, const char* argv[]) {
       vector<string> cfnames =
           vector<string>(leftover_args.begin() + 1, leftover_args.end());
       loadCovariates(cfnames, sites, covariates, binSize_covars, SORT,
-                     LOG_COVARS, !NO_NORMALISE_COVARS, VERBOSE);
+                     LOG_COVARS, !NO_NORMALISE_COVARS, UNSTRANDED, VERBOSE);
     }
 
     // tell the user what options were set and what files we found
