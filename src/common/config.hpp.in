@@ -32,5 +32,6 @@
   \section revisions Revision History
 **/
 
+extern const char version[] = "1.2.1";
 #define @bamsupport@
 

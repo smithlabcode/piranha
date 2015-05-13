@@ -1112,10 +1112,12 @@ main(int argc, const char* argv[]) {
 
     
     /************************* COMMAND LINE OPTIONS **************************/
-    string about = "Piranha Version 1.2.0 -- A program for finding peaks in "
+    string about = "Piranha Version " + (string)version + 
+                   " -- A program for finding peaks in "
                    "high throughput RNA-protein interaction data (e.g. RIP- "
-                   "and CLIP-Seq). Written by Philip J. Uren and "
-                   "Andrew D. Smith. See README.TXT for further details";
+                   "and CLIP-Seq). Written by Philip J. Uren, Emad "
+                   "Bahrami-Samani and Andrew D. Smith. See README.TXT for "
+                   "further details";
     OptionParser opt_parse(strip_path(argv[0]), about, "[*.bed] *.bed");
     opt_parse.add_opt("output", 'o', "Name of output file, STDOUT if omitted", 
                       false, outfn);
