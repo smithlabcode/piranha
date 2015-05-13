@@ -1,4 +1,4 @@
-AC_INIT(Piranha, version-1.1.0)
+AC_INIT(Piranha, version-1.2.1)
 
 # Allow the user to specify where the BAMTools headers and libraries are
 # located.
