@@ -371,7 +371,7 @@ loadCovariates(const vector<string> &filenames,
       b.binReads(covTmp, binned, sites, UNSTRANDED, 1);
       swap(binned, covTmp);
     }
-
+    sort(covTmp.begin(), covTmp.end(), regionComp());
     // cry if the sizes don't match what we expect -- we assume from here
     // on in that there are at least as many covariate values as sites.
     // TODO: I'm not sure this is needed, given the checks in the block of
