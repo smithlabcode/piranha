@@ -174,6 +174,14 @@ Options:
                           should be considered the background. Default is 0.99
   -b, -bin_size           indicates that input is raw reads and should be binned 
                           into bins of this size 
+  -i, -bin_size_covars    indicates that the covariates (all except first 
+                          file) are raw reads and should be binned into bins of 
+                          this size 
+  -z, -bin_size_both      synonymous with -b x -i x for any x 
+  -u, -cluster_dist       merge significant bins within this distance. 
+                          Setting to 0 disables merging, default is 1 (merge 
+                          adjacent) 
+  -r, -suppress_covars    don't print covariate values in output
   -f, -fit                Fit only, output model to file 
   -d, -dist               Distribution type. Currently supports Poisson, 
                           NegativeBinomial, ZeroTruncatedPoisson, 
@@ -188,6 +196,7 @@ Options:
   -x, -unstranded         Don't preserve strand (puts all the peaks in positive 
                           strand) 
   -n, -no_normalisation   don't normalise covariates 
+  -l, -log_covars         convert covariates to log scale 
 
 Help options:
   -?, -help               print this help message 
@@ -204,7 +213,7 @@ Help options:
 Piranha takes three possible inputs:
   1.) The response file   (BED or BAM format) [REQUIRED]
   2.) The covariate files (BED format)        [OPTIONAL]      
-  3.) The model files     (XML format)        [OPTIONAL]
+  3.) The model file      (XML format)        [OPTIONAL]
   
 The response file (always the first argument, and required) may contain:
   1.) Binned read counts. In this case the input can be provided in BED 
@@ -221,15 +230,27 @@ The response file (always the first argument, and required) may contain:
 The file format will be determined by looking at the file extension (.bam or 
 .bed). Case is not important; unknown extensions are treated as .bed files. 
 
-The covariates must be provided in BED format; they are always assumed to be 
-already binned. Every bin present in the response file (or created from the 
-response file if raw reads are given) must have a matching bin in all of the 
-covariates or the program will abort with an error.            
+The covariates files are optional. You can provide one or more of them.
+If none are provided, the program fits a regular distribution (zero-truncated 
+negative binomial by default) to the read counts. If covariates are provided,
+the program performs regression (zero truncated negative binomial regression
+by default) using the provided covariates. Covariates must be provided in
+BED format, where the score field (the fifth) is taken as value of the 
+covariate for the genomic region defined by the other fields. Every covariate
+file must contain genomic loci that match the response file.
+
+Piranha has a special option for handling the case where a single covariate
+is present and this covariate is the number of reads from another sequencing
+run (for example, a control IP in the case of RIP or an RNA-seq experiment
+in the case of CLIP). In this case, the covariate can be provided as a BED
+file that contains the raw read locations; the -i option should be used to
+indicate that the covariate file is raw reads -- Piranha will then bin these
+reads into bins that match the response.
 
 Piranha's output is a tab delimited file with the input regions from the 
 response (in BED format) and a single additional column giving the p-value 
-for each bin. Note that no adjustment for multiple-hypothesis testing is 
-performed.
+for each bin. If covariates were provided, additional columns are added
+containing the value of each of the covariates for the given locus.
 
 If the -f option is specified, Piranha will output the model instead of the
 scored bins. Models are given in XML format, and can be loaded back into
@@ -253,8 +274,36 @@ but this need not be the case).
 > -r response.bed -c "cov1.bed cov2.bed" 
 
 
+*****************************
+6. Frequently asked questions
+*******************************************************************************
+
+Q. I get the error: "Failed to split responses, smallest response accounts for 
+   more than 99% of all responses. Try increasing the threshold". What does
+   this mean? How do I fix it?
+A. Piranha assumes most bins in your input are background noise. The program
+   models this background and then tests each read count to see if it 
+   significantly exceeds the background. This doesn't work if all or most of
+   your bins contain the same number of reads though. That is what this 
+   message is telling you: more than 99% of the bins in your input contain
+   the same number of reads as the smallest read count (usually 1 read, but 
+   not neccessarily). Most often this is because you forgot to use the -b
+   option to bin your reads and so Piranha thinks each read is its own bin.
+   
+Q. I am running Piranha with one or more covariates and I got the following
+   error (or similiar): "ERROR: evaluating zero-truncated negative binomial 
+   regression log-likelihood function with response 1 and distribution 
+   parameters beta: 6000,  --- alpha: 100 failed. Reason: result was 
+   non-finite"
+A. The model fitting algorithm failed to converge. This often happens when
+   the covariate(s) contain large values, which is most often the case when
+   you provide sequencing data like RIP control IP or RNA-seq data as a
+   covariate. Try running the program again with the -l option, which
+   converts the read counts from your covariate into log-space; this 
+   generally solves the problem.
+
 ***************************
-6. Contacts and bug reports
+7. Contacts and bug reports
 *******************************************************************************
 Philip J. Uren
 uren@usc.edu
