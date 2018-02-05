@@ -1,3 +1,27 @@
+# Copyright (C) 2012 - 2018
+# University of Southern California,
+# Philip J. Uren, Andrew D. Smith
+#
+# Authors: Philip J. Uren, Emad Bahrami-Samani, Andrew D. Smith
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+# This software package contains Google Test and BAMTools -- see their
+# respective directories for copyright and license information for those
+# packages.
+
+# standard python imports
 import sys
 import os
 import shlex
@@ -5,8 +29,15 @@ import re
 import math
 import subprocess
 import tempfile
-import StringIO
+
+# xml parser; regressiont tests are stored as XML docs
 from xml.dom.minidom import parseString
+
+# Need StringIO module, but try to make this comatible with both Python 2/3
+try:
+    from StringIO import StringIO
+except ImportError:
+    from io import StringIO
 
 
 class TextColours:
@@ -102,9 +133,9 @@ def loadTests(fn):
 
 
 def runTest(test, colWidth, logfile=None):
-  print "Running '" + test.name + "'... ",
+  sys.stdout.write("Running '" + test.name + "'... ")
   for i in range(0, colWidth - len(test.name)):
-    print "",
+    sys.stdout.write("")
 
   # we make a temporary file to store STDOUT, STDERR from the test
   tmpf, tmpnm = tempfile.mkstemp(dir=os.getcwd())
@@ -112,7 +143,8 @@ def runTest(test, colWidth, logfile=None):
 
   try:
     # run the test..
-    print TextColours.WARNING_YELLOW + "[exec..]" + TextColours.ENDC,
+    sys.stdout.write(TextColours.WARNING_YELLOW + "[exec..]" +
+                     TextColours.ENDC)
     sys.stdout.flush()
     args = shlex.split(test.command)
     subprocess.Popen(args, stdout=tmpf, stderr=tmpf2)
@@ -120,11 +152,12 @@ def runTest(test, colWidth, logfile=None):
 
     actualOutput = open(tmpnm).read()
     expectedOutput = open(test.expected).read()
-    logbuffer = StringIO.StringIO()
-    print "\b\b\b\b\b\b\b\b\b\b",
+    logbuffer = StringIO()
+    sys.stdout.write("\b\b\b\b\b\b\b\b")
     if not (compareStrings(actualOutput, expectedOutput,
                            relTol=0.05, logfile=logbuffer)):
-      print TextColours.FAIL_RED + "[failed]" + TextColours.ENDC
+      sys.stdout.write(TextColours.FAIL_RED + "[failed]" +
+                       TextColours.ENDC + "\n")
       if logfile is not None:
         logfile.write("******************* FAILED TEST *******************\n")
         logfile.write("testname = " + str(test.name) + "\n\n")
@@ -141,7 +174,8 @@ def runTest(test, colWidth, logfile=None):
         logfile.write(logbuffer.getvalue())
         logfile.write("\n")
     else:
-      print TextColours.OK_GREEN + "[passed]" + TextColours.ENDC
+      sys.stdout.write(TextColours.OK_GREEN + "[passed]" +
+                       TextColours.ENDC + "\n")
   finally:
     # cleanup our temporary files
     os.close(tmpf)
@@ -153,7 +187,7 @@ def runTest(test, colWidth, logfile=None):
 def runTests(testfn):
   tests = loadTests(testfn)
   colWidth = max([len(t.name) for t in tests])
-  logbuffer = StringIO.StringIO()
+  logbuffer = StringIO()
   for test in tests:
     runTest(test, colWidth, logbuffer)
   logoutput = logbuffer.getvalue()
