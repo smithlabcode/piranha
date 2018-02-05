@@ -752,22 +752,22 @@ FindPeaksSingleComponentRegression(const bool VERBOSE, const bool FITONLY,
 
     if (SUPRESS_COVARS) {
       if (flanking_fn.empty()) {
-        if (sites_pos.size()>0 && pvals_pos.size()>0)
+        if (sites_pos.size() > 0 && pvals_pos.size() > 0)
           GenomicRegionAggregator(clusterDist).aggregate(sites_pos.begin(),
             sites_pos.end(), pvals_pos.begin(), pvals_pos.end(),
             pThresh, ClusterLimitsPrinter(ostrm));
-        if (sites_neg.size()>0 && pvals_neg.size()>0)
+        if (sites_neg.size() > 0 && pvals_neg.size() > 0)
           GenomicRegionAggregator(clusterDist).aggregate(sites_neg.begin(),
             sites_neg.end(), pvals_neg.begin(), pvals_neg.end(),
             pThresh, ClusterLimitsPrinter(ostrm));
       } else {
         ofstream flank_strm(flanking_fn.c_str());
-        if (sites_pos.size()>0 && pvals_pos.size()>0)
+        if (sites_pos.size() > 0 && pvals_pos.size() > 0)
           GenomicRegionAggregator(clusterDist).aggregate(sites_pos.begin(),
             sites_pos.end(), pvals_pos.begin(), pvals_pos.end(),
             pThresh, ClusterLimitsPrinter(ostrm),
             FlankingPrinter(flank_strm, flanking_pad, flanking_size));
-        if (sites_neg.size()>0 && pvals_neg.size()>0)
+        if (sites_neg.size() > 0 && pvals_neg.size() > 0)
           GenomicRegionAggregator(clusterDist).aggregate(sites_neg.begin(),
             sites_neg.end(), pvals_neg.begin(), pvals_neg.end(),
             pThresh, ClusterLimitsPrinter(ostrm),
@@ -775,22 +775,22 @@ FindPeaksSingleComponentRegression(const bool VERBOSE, const bool FITONLY,
       }
     } else {
       if (flanking_fn.empty()) {
-        if (sites_pos.size()>0 && pvals_pos.size()>0 && c_starts_pos.size()>0 && c_ends_pos.size()>0)
+        if (sites_pos.size() > 0 && pvals_pos.size() > 0 && c_starts_pos.size() > 0 && c_ends_pos.size()>0)
           GenomicRegionAggregator(clusterDist).aggregate(sites_pos.begin(),
             sites_pos.end(), pvals_pos.begin(), pvals_pos.end(),
             c_starts_pos, c_ends_pos, pThresh, ClusterLimitsPrinter(ostrm));
-        if (sites_neg.size()>0 && pvals_neg.size()>0 && c_starts_neg.size()>0 && c_ends_neg.size()>0)
+        if (sites_neg.size() > 0 && pvals_neg.size() > 0 && c_starts_neg.size() > 0 && c_ends_neg.size()>0)
           GenomicRegionAggregator(clusterDist).aggregate(sites_neg.begin(),
             sites_neg.end(), pvals_neg.begin(), pvals_neg.end(),
             c_starts_neg, c_ends_neg, pThresh, ClusterLimitsPrinter(ostrm));
       } else {
         ofstream flank_strm(flanking_fn.c_str());
-        if (sites_pos.size()>0 && pvals_pos.size()>0 && c_starts_pos.size()>0 && c_ends_pos.size()>0)
+        if (sites_pos.size() > 0 && pvals_pos.size() > 0 && c_starts_pos.size() > 0 && c_ends_pos.size()>0)
           GenomicRegionAggregator(clusterDist).aggregate(sites_pos.begin(),
             sites_pos.end(), pvals_pos.begin(), pvals_pos.end(),
             c_starts_pos, c_ends_pos, pThresh, ClusterLimitsPrinter(ostrm),
             FlankingPrinter(flank_strm, flanking_pad, flanking_size));
-        if (sites_neg.size()>0 && pvals_neg.size()>0 && c_starts_neg.size()>0 && c_ends_neg.size()>0)
+        if (sites_neg.size() > 0 && pvals_neg.size() > 0 && c_starts_neg.size() > 0 && c_ends_neg.size()>0)
           GenomicRegionAggregator(clusterDist).aggregate(sites_neg.begin(),
             sites_neg.end(), pvals_neg.begin(), pvals_neg.end(),
             c_starts_neg, c_ends_neg, pThresh, ClusterLimitsPrinter(ostrm),
@@ -836,7 +836,6 @@ FindPeaksSingleComponentSimple(const bool VERBOSE, const bool FITONLY,
                                string flanking_fn,
                                size_t flanking_pad,
                                size_t flanking_size) {
-
   if (VERBOSE)
     cerr << "Simple 1-component fitting using " << distType << endl;
 
@@ -852,7 +851,8 @@ FindPeaksSingleComponentSimple(const bool VERBOSE, const bool FITONLY,
   Distribution *distro = Distribution::create(distType);
   if (modelfn.empty())
     distro->estimateParams(responses, VERBOSE);
-  else distro->load(modelfn);
+  else
+    distro->load(modelfn);
 
   // Give our output as the scored sites, or just the model?
   if (FITONLY) {
@@ -861,9 +861,9 @@ FindPeaksSingleComponentSimple(const bool VERBOSE, const bool FITONLY,
     // we have to pre-compute all of the p-values so we can adjust them
     // for multiple hypothesis testing
     vector<double> fg_pvals, bg_pvals;
-    for (size_t i=0; i<responses.size(); i++)
+    for (size_t i = 0; i < responses.size(); i++)
       bg_pvals.push_back(distro->pvalue(responses[i]));
-    for (size_t i=0; i<fgResponses.size(); i++)
+    for (size_t i = 0; i < fgResponses.size(); i++)
       fg_pvals.push_back(distro->pvalue(fgResponses[i]));
     if (!NO_PVAL_CORRECT) {
       FDR::correctP(fg_pvals);
@@ -871,9 +871,9 @@ FindPeaksSingleComponentSimple(const bool VERBOSE, const bool FITONLY,
     }
 
     // put the response values back into the sites
-    for (size_t i=0; i<responses.size(); i++)
+    for (size_t i = 0; i < responses.size(); i++)
       sites[i].set_score(responses[i]);
-    for (size_t i=0; i<fgResponses.size(); i++)
+    for (size_t i = 0; i < fgResponses.size(); i++)
       fgSites[i].set_score(fgResponses[i]);
 
     // now we merge our bg and fg vectors back together. After this everything
@@ -883,7 +883,7 @@ FindPeaksSingleComponentSimple(const bool VERBOSE, const bool FITONLY,
     vector<double> bg_pvals_pos, bg_pvals_neg;
     vector<GenomicRegion> sites_pos, sites_neg;
 
-    for (size_t i=0; i<sites.size(); i++) {
+    for (size_t i = 0; i < sites.size(); i++) {
       if (sites[i].pos_strand()) {
         sites_pos.push_back(sites[i]);
         bg_pvals_pos.push_back(bg_pvals[i]);
@@ -893,25 +893,25 @@ FindPeaksSingleComponentSimple(const bool VERBOSE, const bool FITONLY,
       }
     }
     // finally, identify clusters and output to the ostream
-    // TODO proper runtime polymorphism here...
+    // TODO(pjuren) proper runtime polymorphism here...
     if (flanking_fn.empty()) {
       if (sites_pos.size() > 0 && bg_pvals_pos.size() > 0)
         GenomicRegionAggregator(clusterDist).aggregate(sites_pos.begin(),
             sites_pos.end(), bg_pvals_pos.begin(), bg_pvals_pos.end(),
             pThresh, ClusterLimitsPrinter(ostrm));
-      if (sites_neg.size()>0 && bg_pvals_neg.size()>0)
+      if (sites_neg.size() > 0 && bg_pvals_neg.size() > 0)
         GenomicRegionAggregator(clusterDist).aggregate(sites_neg.begin(),
             sites_neg.end(), bg_pvals_neg.begin(), bg_pvals_neg.end(),
             pThresh, ClusterLimitsPrinter(ostrm));
     } else {
       ofstream flank_strm(flanking_fn.c_str());
-      if (sites_pos.size()>0 && bg_pvals_pos.size()>0) {
+      if (sites_pos.size() > 0 && bg_pvals_pos.size() > 0) {
         GenomicRegionAggregator(clusterDist).aggregate(sites_pos.begin(),
             sites_pos.end(), bg_pvals_pos.begin(), bg_pvals_pos.end(),
             pThresh, ClusterLimitsPrinter(ostrm),
             FlankingPrinter(flank_strm, flanking_pad, flanking_size));
       }
-      if (sites_neg.size()>0 && bg_pvals_neg.size()>0) {
+      if (sites_neg.size() > 0 && bg_pvals_neg.size() > 0) {
         GenomicRegionAggregator(clusterDist).aggregate(sites_neg.begin(),
             sites_neg.end(), bg_pvals_neg.begin(), bg_pvals_neg.end(),
             pThresh, ClusterLimitsPrinter(ostrm),
@@ -977,7 +977,8 @@ main(int argc, const char* argv[]) {
                       false, pthresh);
     opt_parse.add_opt("no_pval_correct", 'c', "don't correct p-values for "
                                               "multiple hypothesis testing. "
-                                              "We correct by default using B&H.",
+                                              "We correct by default using "
+                                              "B&H.",
                       false, NO_PVAL_CORRECT);
     opt_parse.add_opt("background_thresh", 'a', "indicates that this "
                                                 "proportion of the lowest "
@@ -986,15 +987,17 @@ main(int argc, const char* argv[]) {
                                                 "0.99",
                       false, bgThresh);
     opt_parse.add_opt("bin_size_reponse", 'b', "indicates that the response "
-                                       "(first input file) is raw reads and "
-                                       "should be binned into bins of this size",
+                                               "(first input file) is raw "
+                                               "reads and should be binned "
+                                               "into bins of this size",
                       false, binSize_response);
     opt_parse.add_opt("bin_size_covars", 'i', "indicates that the covariates "
                                               "(all except first file) are "
                                               "raw reads and should be binned "
                                               "into bins of this size",
                       false, binSize_covars);
-    opt_parse.add_opt("bin_size_both", 'z', "synonymous with -b x -i x for any x",
+    opt_parse.add_opt("bin_size_both", 'z', "synonymous with -b x -i x for "
+                                            "any x",
                       false, binSize_both);
     opt_parse.add_opt("cluster_dist", 'u', "merge significant bins within "
                                            "this distance. Setting to 0 "
@@ -1034,8 +1037,8 @@ main(int argc, const char* argv[]) {
                       "fitting to input data", false, modelfn);
     opt_parse.add_opt("VERBOSE", 'v', "output additional messages about run "
                       "to stderr if set", false, VERBOSE);
-    opt_parse.add_opt("UNSTRANDED", 'x', "Don't preserve strand (puts all the peaks "
-                      "in positive strand)", false, UNSTRANDED);
+    opt_parse.add_opt("UNSTRANDED", 'x', "Don't preserve strand (puts all the "
+                      "peaks in positive strand)", false, UNSTRANDED);
     opt_parse.add_opt("no_normalisation", 'n', "don't normalise covariates",
                       false, NO_NORMALISE_COVARS);
     opt_parse.add_opt("log_covars", 'l', "convert covariates to log scale",
@@ -1057,7 +1060,7 @@ main(int argc, const char* argv[]) {
       return EXIT_SUCCESS;
     }
     if (leftover_args.empty()) {
-      // TODO handle input via stdin?
+      // TODO(pjuren) handle input via stdin?
       cerr << "must provide input files" << endl;
       return EXIT_FAILURE;
     }
@@ -1066,7 +1069,7 @@ main(int argc, const char* argv[]) {
     // Check that the options the user picked all make sense
     if ((modelfn != "") && (FITONLY)) {
       cerr << "WARNING: loading model from file, and not scoring input -- "
-	   << "will just copy model from input to output streams" << endl;
+           << "will just copy model from input to output streams" << endl;
     }
     if ((bgThresh > 1) || (bgThresh < 0)) {
       stringstream ss;
@@ -1102,8 +1105,10 @@ main(int argc, const char* argv[]) {
     ostream ostrm(outfn.empty() ? cout.rdbuf() : of.rdbuf());
     if (!ostrm.good()) {
       stringstream ss;
-      if (!outfn.empty()) ss << "Failed to open " << outfn << " for writing";
-      else ss << "Unable to write to standard out";
+      if (!outfn.empty())
+        ss << "Failed to open " << outfn << " for writing";
+      else
+        ss << "Unable to write to standard out";
       throw SMITHLABException(ss.str());
     }
 
@@ -1124,8 +1129,10 @@ main(int argc, const char* argv[]) {
     if (VERBOSE) {
       cerr << "Piranha was run with the following options: " << endl;
       cerr << "Significance threshold: " << pthresh << endl;
-      if (!outfn.empty()) cerr << "writing output to " << outfn << endl;
-      else cerr << "writing output to stdout" << endl;
+      if (!outfn.empty())
+        cerr << "writing output to " << outfn << endl;
+      else
+        cerr << "writing output to stdout" << endl;
 
       // binning our data
       if (binSize_response == ALREADY_BINNED)
@@ -1139,23 +1146,33 @@ main(int argc, const char* argv[]) {
         cerr << "binning covariates into bins of size "
              << binSize_response << endl;
 
-      if (FITONLY) cerr << "Not scoring input regions" << endl;
-      else cerr << "scoring input regions" << endl;
-      if (modelfn != "") cerr << "loading model from " << modelfn << endl;
+      if (FITONLY)
+        cerr << "Not scoring input regions" << endl;
+      else
+        cerr << "scoring input regions" << endl;
+      if (modelfn != "")
+        cerr << "loading model from " << modelfn << endl;
       cerr << "model type? " << distType << endl;
-      if (NO_NORMALISE_COVARS) cerr << "normalise covariates? no" << endl;
-      else cerr << "normalise covariates? yes" << endl;
-      if (SORT) cerr << "sort input files? yes" << endl;
-      else cerr << "sort input files? no" << endl;
+      if (NO_NORMALISE_COVARS)
+        cerr << "normalise covariates? no" << endl;
+      else
+        cerr << "normalise covariates? yes" << endl;
+      if (SORT)
+        cerr << "sort input files? yes" << endl;
+      else
+        cerr << "sort input files? no" << endl;
       cerr << "loaded " << responses.size() <<  " elements from "
            << leftover_args.front() << endl;
       if (leftover_args.size() > 1) {
         vector<string> cfnames =
             vector<string>(leftover_args.begin() + 1, leftover_args.end());
         cerr << "loaded " << covariates.size() << " covariates from ";
-        for (size_t i=0; i<cfnames.size(); i++) cerr << cfnames[i] << "\t";
+        for (size_t i = 0; i < cfnames.size(); i++)
+          cerr << cfnames[i] << "\t";
         cerr << endl;
-      } else cerr << "no covariates found" << endl;
+      } else {
+        cerr << "no covariates found" << endl;
+      }
     }
 
     if (leftover_args.size() == 1) {
