@@ -573,6 +573,10 @@ splitResponsesAndCovariates(vector<double> &allResponses,
 }
 
 
+/******************************************************************************
+**                        ACTUAL PEAK-FINDING FUNCTIONS                      **
+******************************************************************************/
+
 /**
  * \brief Use a single regression model to find peaks and output each
  *        input region with a p-value
@@ -591,7 +595,6 @@ static void
 FindPeaksSingleComponentRegression(const bool VERBOSE, const bool FITONLY,
                                    const bool NO_PVAL_CORRECT,
                                    const bool SUPRESS_COVARS,
-                                   const size_t summitPadding,
                                    vector<GenomicRegion> &sites,
                                    vector<GenomicRegion> &fgSites,
                                    vector<double> &responses,
@@ -647,7 +650,8 @@ FindPeaksSingleComponentRegression(const bool VERBOSE, const bool FITONLY,
   }
 
   // check responses
-  if ((responses.size() != NUM_BG_SITES) || (fgResponses.size() != NUM_FG_SITES)) {
+  if ((responses.size() != NUM_BG_SITES) ||
+      (fgResponses.size() != NUM_FG_SITES)) {
     stringstream ss;
     ss << "Peak finding using regression method " << distType << "failed. "
        << "Reason: responses vector size doesn't match covariates vector size";
@@ -662,8 +666,11 @@ FindPeaksSingleComponentRegression(const bool VERBOSE, const bool FITONLY,
   // Load or fit the model
   RegressionModel *distro =
     RegressionBuilder::buildRegression(distType, covariates_t.size(), ftmthd);
-  if (modelfn.empty()) distro->estimateParams(responses, covariates_t, VERBOSE);
-  else distro->load(modelfn);
+  if (modelfn.empty()) {
+    distro->estimateParams(responses, covariates_t, VERBOSE);
+  } else {
+    distro->load(modelfn);
+  }
 
   if (VERBOSE) {
     cerr << "model parameters are: " << endl;
@@ -818,7 +825,6 @@ FindPeaksSingleComponentRegression(const bool VERBOSE, const bool FITONLY,
 static void
 FindPeaksSingleComponentSimple(const bool VERBOSE, const bool FITONLY,
                                const bool NO_PVAL_CORRECT,
-                               const size_t summitPadding,
                                const string &distType, const string &modelfn,
                                vector<GenomicRegion> &sites,
                                vector<GenomicRegion> &fgSites,
@@ -919,6 +925,10 @@ FindPeaksSingleComponentSimple(const bool VERBOSE, const bool FITONLY,
 }
 
 
+/******************************************************************************
+**                 MAIN ENTRY POINT AND COMMAND LINE PARSING                 **
+******************************************************************************/
+
 /**
  * \brief TODO
  */
@@ -938,7 +948,6 @@ main(int argc, const char* argv[]) {
     bool LOG_COVARS = false;
     bool SUPRESS_COVARS = false;
 
-    size_t numComponents = 1;
     string distType = "DEFAULT";
     double pthresh = DEFAULT_PTHRESH;
     double bgThresh = DEFAULT_BGTHRESH;
@@ -947,7 +956,6 @@ main(int argc, const char* argv[]) {
     size_t binSize_covars = ALREADY_BINNED;
     size_t binSize_both = ALREADY_BINNED;
     size_t cluster_dist = 1;
-    size_t summit_padding_amount = 0;
     string flanking_fn = "";
     size_t flanking_size = 1;
     size_t flanking_buffer_size = 0;
@@ -993,10 +1001,6 @@ main(int argc, const char* argv[]) {
                                            "disables merging, default is 1 "
                                            "(merge adjacent)",
                       false, cluster_dist);
-    /*opt_parse.add_opt("cluster_summit_padding", 'g', "set padding around "
-                                                     "cluster summits to this "
-                                                     "amount (default is none)",
-                      false, summit_padding_amount);*/
     /*opt_parse.add_opt("flanking_clusters", 'k', "output flanking clusters to "
                                                 "this file.",
                       false, flanking_fn);*/
@@ -1154,41 +1158,34 @@ main(int argc, const char* argv[]) {
       } else cerr << "no covariates found" << endl;
     }
 
-    // if we're fitting only a single component, rather than a mixture..
-    if (numComponents == 1) {
-      if (leftover_args.size() == 1) {
-        // just one file given, must be simple distribution
-        if (distType == "DEFAULT")
-          distType = "ZeroTruncatedNegativeBinomial";
-        vector<GenomicRegion> fgSites;
-        vector<double> fgResponses;
-        splitResponses(responses, sites, fgResponses, fgSites, bgThresh,
-                              VERBOSE);
-        FindPeaksSingleComponentSimple(VERBOSE, FITONLY, NO_PVAL_CORRECT,
-                              summit_padding_amount, distType,
-                              modelfn, sites, fgSites, responses, fgResponses,
-                              pthresh, cluster_dist, ostrm, flanking_fn, flanking_buffer_size, flanking_size);
-      } else {
-        // more than one input file given, must be regression
-        if (distType == "DEFAULT")
-          distType = "ZeroTruncatedNegativeBinomialRegression";
-        vector<GenomicRegion> fgSites;
-        vector<double> fgResponses;
-        vector< vector<double> > fgCovariates;
-        splitResponsesAndCovariates(responses, covariates, sites, fgResponses,
-                              fgCovariates, fgSites, bgThresh, VERBOSE);
-        FindPeaksSingleComponentRegression(VERBOSE, FITONLY, NO_PVAL_CORRECT,
-                              SUPRESS_COVARS, summit_padding_amount, sites, fgSites,
-                              responses, fgResponses, covariates,
-                              fgCovariates, FittingMethod(fittingMethodStr),
-                              distType, modelfn, pthresh, cluster_dist, ostrm, flanking_fn, flanking_buffer_size, flanking_size);
-      }
+    if (leftover_args.size() == 1) {
+      // just one file given, must be simple distribution
+      if (distType == "DEFAULT")
+        distType = "ZeroTruncatedNegativeBinomial";
+      vector<GenomicRegion> fgSites;
+      vector<double> fgResponses;
+      splitResponses(responses, sites, fgResponses, fgSites, bgThresh,
+                            VERBOSE);
+      FindPeaksSingleComponentSimple(VERBOSE, FITONLY, NO_PVAL_CORRECT,
+                            distType,
+                            modelfn, sites, fgSites, responses, fgResponses,
+                            pthresh, cluster_dist, ostrm, flanking_fn,
+                            flanking_buffer_size, flanking_size);
     } else {
-      // do the full mixture thing
-      cerr << "mixtures not supported in this version" << endl;
-      /*FindPeaksMixture(leftover_args, ostrm, modelfn, distType, numComponents,
-		       FITONLY, FittingMethod(fittingMethodStr),
-		       ignoreCovariates, !NO_NORMALISE_COVARS, VERBOSE);*/
+      // more than one input file given, must be regression
+      if (distType == "DEFAULT")
+        distType = "ZeroTruncatedNegativeBinomialRegression";
+      vector<GenomicRegion> fgSites;
+      vector<double> fgResponses;
+      vector< vector<double> > fgCovariates;
+      splitResponsesAndCovariates(responses, covariates, sites, fgResponses,
+                            fgCovariates, fgSites, bgThresh, VERBOSE);
+      FindPeaksSingleComponentRegression(VERBOSE, FITONLY, NO_PVAL_CORRECT,
+                            SUPRESS_COVARS, sites,
+                            fgSites, responses, fgResponses, covariates,
+                            fgCovariates, FittingMethod(fittingMethodStr),
+                            distType, modelfn, pthresh, cluster_dist, ostrm,
+                            flanking_fn, flanking_buffer_size, flanking_size);
     }
   } catch (const SMITHLABException &e) {
     cerr << "ERROR:\t" << e.what() << endl;
