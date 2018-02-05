@@ -28,8 +28,16 @@
 /src/test/Makefile
 /src/test/regressionTests.xml
 
-# Executables and directories made during 
-# building or testing 
+# Executables and directories made during
+# building or testing
 /bin/
 src/progs/Piranha
 src/progs/Simulate
+src/test/TestFDR
+src/test/TestMatrix
+src/test/TestNegativeBinomial
+src/test/TestPoisson
+src/test/TestReadBinner
+src/test/TestUtility
+src/test/TestZTNB
+src/test/TestZTP
