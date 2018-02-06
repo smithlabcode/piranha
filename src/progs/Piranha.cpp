@@ -474,10 +474,66 @@ computePValSimple(const Distribution *distro, const vector<double> &responses,
                   const vector<double> &fgResponses, vector<double> &fg_pvals,
                   vector<double> &bg_pvals, const bool NO_PVAL_CORRECT) {
   vector<double> all_pvals;
+
+  bg_pvals.clear();
+  fg_pvals.clear();
   for (size_t i = 0; i < responses.size(); i++)
     all_pvals.push_back(distro->pvalue(responses[i]));
   for (size_t i = 0; i < fgResponses.size(); i++)
     all_pvals.push_back(distro->pvalue(fgResponses[i]));
+  if (!NO_PVAL_CORRECT)
+    FDR::correctP(all_pvals);
+  for (size_t i = 0; i < responses.size(); i++)
+    bg_pvals.push_back(all_pvals[i]);
+  for (size_t i = 0; i < fgResponses.size(); i++)
+    fg_pvals.push_back(all_pvals[bg_pvals.size() + i]);
+}
+
+
+/**
+ * \brief compute p-values for foreground and background bins using a
+ *        GLM distirbution; optionally adjust for multiple hypothesis testing.
+ * \param distro           pointer to regression distribution object to use to
+ *                         compute p-values.
+ * \param responses        read-counts in background bins.
+ * \param fgResponses      read-counts in foreground bins.
+ * \param covariates_t     matrix of covariate values for background bins; must
+ *                         be locus-major (i.e. indexed first by bin, then by
+ *                         covariate).
+ * \param covariates_t_fg  matrix of covariate values for foreground bins; must
+ *                         be locus-major (i.e. indexed first by bin, then by
+ *                         covariate).
+ * \param fg_pvals         a vector to place the resultant foreground p-values
+ *                         into. will be cleared.
+ * \param bg_pvals         a vector to place the resultant background p-values
+ *                         into. Will be cleared.
+ * \param NO_PVAL_CORRECT  if true, don't perform any correction to multiple
+ *                         hypothesis testing. Otherwise, perform BH correction.
+ */
+static void
+computePValRegression(const RegressionModel *distro,
+                      const vector<double> &responses,
+                      const vector<double> &fgResponses,
+                      const vector< vector<double> > covariates_t,
+                      const vector< vector<double> > covariates_t_fg,
+                      vector<double> &fg_pvals, vector<double> &bg_pvals,
+                      const bool NO_PVAL_CORRECT) {
+  vector<double> all_pvals;
+
+  if ((covariates_t.size() != responses.size()) ||
+      (fgResponses.size() != covariates_t_fg.size())) {
+    stringstream ss;
+    ss << "Failed to compute p-values for GLM, covariates matrix has "
+       << "different size than response vector";
+    throw SMITHLABException(ss.str());
+  }
+
+  bg_pvals.clear();
+  fg_pvals.clear();
+  for (size_t i = 0; i < covariates_t.size(); ++i)
+    all_pvals.push_back(distro->pvalue(responses[i], covariates_t[i]));
+  for (size_t i = 0; i < covariates_t_fg.size(); ++i)
+    all_pvals.push_back(distro->pvalue(fgResponses[i], covariates_t_fg[i]));
   if (!NO_PVAL_CORRECT)
     FDR::correctP(all_pvals);
   for (size_t i = 0; i < responses.size(); i++)
@@ -729,20 +785,13 @@ FindPeaksRegression(const bool VERBOSE, const bool FITONLY,
   } else {
     // we first compute all the p-values, because we probably want to correct
     // them and to do that we need them all.
-    vector<double> fg_pvals, pvals;
-    for (size_t i=0; i < NUM_BG_SITES; i++)
-      pvals.push_back(distro->pvalue(responses[i], covariates_t[i]));
-    if (NUM_FG_SITES > 0) {
-      Matrix m_fg(fgCovariates);
-      const vector< vector<double> > covariates_t_fg =
-        m_fg.transpose().asVectorOfVector();
-      for (size_t i=0; i < fgResponses.size(); i++)
-        fg_pvals.push_back(distro->pvalue(fgResponses[i], covariates_t_fg[i]));
-    }
-    if (!NO_PVAL_CORRECT) {
-      FDR::correctP(fg_pvals);
-      FDR::correctP(pvals);
-    }
+    vector<double> fg_pvals, bg_pvals;
+    const vector< vector<double> > covariates_t_fg(
+      NUM_FG_SITES > 0 ? Matrix(fgCovariates).transpose().asVectorOfVector() :
+      vector< vector<double> >());
+    computePValRegression(distro, responses, fgResponses, covariates_t,
+                          covariates_t_fg, fg_pvals, bg_pvals,
+                          NO_PVAL_CORRECT);
 
     // put the response values back into the sites
     for (size_t i = 0; i < responses.size(); i++)
@@ -752,7 +801,7 @@ FindPeaksRegression(const bool VERBOSE, const bool FITONLY,
 
     // now we merge our bg and fg vectors back together. After this everything
     // is in the bg vectors, fg ones are empty
-    mergeResponsesCovariatesPvals(fgSites, sites, fg_pvals, pvals,
+    mergeResponsesCovariatesPvals(fgSites, sites, fg_pvals, bg_pvals,
                                   fgCovariates, covariates);
 
     // finally, identify clusters and output to the ostream
@@ -787,10 +836,10 @@ FindPeaksRegression(const bool VERBOSE, const bool FITONLY,
     for (size_t i = 0; i < sites.size(); i++) {
       if (sites[i].pos_strand()) {
         sites_pos.push_back(sites[i]);
-        pvals_pos.push_back(pvals[i]);
+        pvals_pos.push_back(bg_pvals[i]);
       } else {
         sites_neg.push_back(sites[i]);
-        pvals_neg.push_back(pvals[i]);
+        pvals_neg.push_back(bg_pvals[i]);
       }
     }
 

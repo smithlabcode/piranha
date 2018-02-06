@@ -37,6 +37,25 @@
   </test>
 
   <!--
+    this test was added to reproduce a bug where the p-value correction is not
+    applied correctly when running in regression mode if the
+    foreground/background split is not 1
+  -->
+  <test>
+    <name> test p-value correction for regression case </name>
+    <command>
+      ../../bin/Piranha -p 0.5 -b 1
+        regressionTestInputs/ztnbr_pval_cor_bug_test_response.bed
+        regressionTestInputs/ztnbr_binning_cov1.bed
+        regressionTestInputs/ztnbr_binning_cov2.bed
+    </command>
+    <expected>
+      regressionTestOutputs/ztnbr_pval_cor_bug_test_output.expected
+    </expected>
+  </test>
+
+
+  <!--
     This test was added to reproduce a bug where an erroneous output occurs
     if there are no significant sites found.
   -->
