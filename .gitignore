@@ -36,6 +36,7 @@ src/progs/Simulate
 src/test/TestFDR
 src/test/TestMatrix
 src/test/TestNegativeBinomial
+src/test/TestGenomicRegionAggregator
 src/test/TestPoisson
 src/test/TestReadBinner
 src/test/TestUtility
