@@ -80,7 +80,7 @@ mergeResponsesCovariatesPvals(vector<GenomicRegion> &sites_fg,
   vector<size_t> lastCvar_bg;
   copy(sites_fg.begin(), sites_fg.end(), back_inserter(sites_bg));
   copy(pvals_fg.begin(), pvals_fg.end(), back_inserter(pvals_bg));
-  for (size_t i=0; i<covars_fg.size(); i++) {
+  for (size_t i = 0; i < covars_fg.size(); i++) {
     lastCvar_bg.push_back(covars_bg[i].size());
     copy(covars_fg[i].begin(), covars_fg[i].end(), back_inserter(covars_bg[i]));
     covars_fg[i].clear();
@@ -96,19 +96,20 @@ mergeResponsesCovariatesPvals(vector<GenomicRegion> &sites_fg,
   inplace_merge(pvals_idx.begin(), pvals_idx.begin() + lastPval_bg,
                 pvals_idx.end(), SiteComp(sites_bg, pvals_bg));
   vector<double> pvals_res;
-  for (size_t i=0; i<pvals_idx.size(); i++) pvals_res.push_back(*(pvals_idx[i]));
+  for (size_t i = 0; i < pvals_idx.size(); i++)
+    pvals_res.push_back(*(pvals_idx[i]));
   pvals_bg.swap(pvals_res);
   pvals_res.clear();
 
   // step 3 -- merge covariates based on sort order defined by sites
-  for (size_t i=0; i<covars_fg.size(); i++) {
+  for (size_t i = 0; i < covars_fg.size(); i++) {
     vector< vector<double>::iterator > cvar_idx;
     for (dIt it = covars_bg[i].begin(); it != covars_bg[i].end(); ++it)
       cvar_idx.push_back(it);
       inplace_merge(cvar_idx.begin(), cvar_idx.begin() + lastCvar_bg[i],
                     cvar_idx.end(), SiteComp(sites_bg, covars_bg[i]));
       vector<double> cvars_res;
-      for (size_t j=0; j<cvar_idx.size(); j++)
+      for (size_t j = 0; j < cvar_idx.size(); j++)
         cvars_res.push_back(*(cvar_idx[j]));
       covars_bg[i].swap(cvars_res);
       cvars_res.clear();
