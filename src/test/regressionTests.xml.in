@@ -1,166 +1,217 @@
-<!-- 
-  This file defines the regression tests to run. Commands can be split 
-  over multiple lines without a line continuation character and they will 
-  still work  
---> 
+<!--
+  This file defines the regression tests to run. Commands can be split
+  over multiple lines without a line continuation character and they will
+  still work
+-->
 
 <regressionTests>
   @bamtest_exclude_start_token@
   <test>
     <name> Binning test BAM ztnbr </name>
-	<command>
-    ../../bin/Piranha -f -b 1 -a 1 
-		regressionTestInputs/zntbr_unbinned_response.bam 
-		regressionTestInputs/ztnbr_binning_cov1.bed 
-		regressionTestInputs/ztnbr_binning_cov2.bed
-	</command>
-	<expected> regressionTestOutputs/ztnbrBinningTestModelOutput.expected.stdout </expected>
+    <command>
+      ../../bin/Piranha -f -b 1 -a 1
+        regressionTestInputs/zntbr_unbinned_response.bam
+        regressionTestInputs/ztnbr_binning_cov1.bed
+        regressionTestInputs/ztnbr_binning_cov2.bed
+    </command>
+    <expected>
+      regressionTestOutputs/ztnbrBinningTestModelOutput.expected.stdout
+    </expected>
   </test>
   @bamtest_exclude_end_token@
 
+  <!--
+    This test was added to reproduce a bug where the p-value correction is not
+    applied properly when running in simple-distribution mode if a p-value
+    threshold is set
+  -->
   <test>
-  	<name> Binning test BED ztnbr </name> 
-	<command> 
-		../../bin/Piranha -f -b 1 -a 1
-		regressionTestInputs/zntbr_unbinned_response.bed
-		regressionTestInputs/ztnbr_binning_cov1.bed 
-		regressionTestInputs/ztnbr_binning_cov2.bed
-	</command>
-	<expected> regressionTestOutputs/ztnbrBinningTestModelOutput.expected.stdout </expected> 
+    <name> test p-value correction with p-value threshold </name>
+    <command>
+      ../../bin/Piranha -s -a 1 -p 0.05
+        regressionTestInputs/NBRegressionTest_response.dat
+    </command>
+    <expected>
+      regressionTestOutputs/ZTNBSimple_pval_thresh_and_correct_test1.expected
+    </expected>
+  </test>
+
+  <!--
+    This test was added to reproduce a bug where an erroneous output occurs
+    if there are no significant sites found.
+  -->
+  <test>
+    <name> test no sig sites </name>
+    <command>
+      ../../bin/Piranha -s -a 1
+        regressionTestInputs/NBRegressionTest_response.dat
+    </command>
+    <expected>
+      regressionTestOutputs/ZTNBSimple_pval_no_sig.expected
+    </expected>
   </test>
 
   <test>
-  	<name> Binning test BED ztnbr pre-binned </name>
-	<command> 
-	    ../../bin/Piranha -f -a 1
-		regressionTestInputs/zntbr_binned_response.bed 
-		regressionTestInputs/ztnbr_binning_cov1.bed 
-		regressionTestInputs/ztnbr_binning_cov2.bed
-	</command>
-	<expected> regressionTestOutputs/ztnbrBinningTestModelOutput.expected.stdout </expected> 
+    <name> Binning test BED ztnbr </name>
+    <command>
+      ../../bin/Piranha -f -b 1 -a 1
+        regressionTestInputs/zntbr_unbinned_response.bed
+        regressionTestInputs/ztnbr_binning_cov1.bed
+        regressionTestInputs/ztnbr_binning_cov2.bed
+    </command>
+    <expected>
+      regressionTestOutputs/ztnbrBinningTestModelOutput.expected.stdout
+    </expected>
+  </test>
+
+  <test>
+    <name> Binning test BED ztnbr pre-binned </name>
+    <command>
+       ../../bin/Piranha -f -a 1
+         regressionTestInputs/zntbr_binned_response.bed
+         regressionTestInputs/ztnbr_binning_cov1.bed
+         regressionTestInputs/ztnbr_binning_cov2.bed
+    </command>
+    <expected>
+      regressionTestOutputs/ztnbrBinningTestModelOutput.expected.stdout
+    </expected>
   </test>
 
   <test>
     <name> Binning test BED </name>
-	<command> 
-		../../bin/Piranha -b 1 -f -a 1
-		regressionTestInputs/testPrianha_zntb_unbinned.bed
+    <command>
+      ../../bin/Piranha -b 1 -f -a 1
+        regressionTestInputs/testPrianha_zntb_unbinned.bed
     </command>
-	<expected> regressionTestOutputs/ztnbBinningTestModelOutput.expected.stdout </expected>
+    <expected>
+      regressionTestOutputs/ztnbBinningTestModelOutput.expected.stdout
+    </expected>
   </test>
 
   @bamtest_exclude_start_token@
   <test>
     <name> Binning test BAM </name>
-	<command>
-	  ../../bin/Piranha -b 1 -f -a 1
-	  regressionTestInputs/testPrianha_zntb_unbinned.bam
-	</command> 
-    <expected> regressionTestOutputs/ztnbBinningTestModelOutput.expected.stdout </expected>
+    <command>
+      ../../bin/Piranha -b 1 -f -a 1
+        regressionTestInputs/testPrianha_zntb_unbinned.bam
+    </command>
+    <expected>
+      regressionTestOutputs/ztnbBinningTestModelOutput.expected.stdout
+    </expected>
   </test>
   @bamtest_exclude_end_token@
 
   <test>
     <name> Binning test BED pre-binned </name>
-	<command>
-	  ../../bin/Piranha -f -a 1
-	  regressionTestInputs/testPrianha_zntb_binned.bed
-	</command>
-	<expected> regressionTestOutputs/ztnbBinningTestModelOutput.expected.stdout </expected>
+    <command>
+      ../../bin/Piranha -f -a 1
+        regressionTestInputs/testPrianha_zntb_binned.bed
+    </command>
+    <expected>
+      regressionTestOutputs/ztnbBinningTestModelOutput.expected.stdout
+    </expected>
   </test>
 
   <test>
     <name> Simple ZTNB Test 1 </name>
-    <command> 
-      ../../bin/Piranha -c -a 1 -p 1 -d ZeroTruncatedNegativeBinomial 
-      regressionTestInputs/ztnbSimpleTest_response.dat 
-    </command> 
+    <command>
+      ../../bin/Piranha -c -a 1 -p 1 -d ZeroTruncatedNegativeBinomial
+        regressionTestInputs/ztnbSimpleTest_response.dat
+    </command>
     <expected> regressionTestOutputs/ztnbSimpleTest_output.expected </expected>
   </test>
 
-	<test>
-		<name> Simple ZTNB Test 1, default sig. </name>
-		<command>
-		  ../../bin/Piranha -c -a 1 -d ZeroTruncatedNegativeBinomial
-		  regressionTestInputs/ztnbSimpleTest_response.dat
-		</command>
-		<expected> regressionTestOutputs/ztnbSimpleTest_defaultSig_output.expected </expected>
+  <test>
+    <name> Simple ZTNB Test 1, default sig. </name>
+    <command>
+      ../../bin/Piranha -c -a 1 -d ZeroTruncatedNegativeBinomial
+        regressionTestInputs/ztnbSimpleTest_response.dat
+    </command>
+    <expected>
+      regressionTestOutputs/ztnbSimpleTest_defaultSig_output.expected
+    </expected>
   </test>
 
   <test>
     <name> Simple ZTNB Test 2, corrected pvals </name>
     <command>
       ../../bin/Piranha -u 0 -a 1 -x -d ZeroTruncatedNegativeBinomial
-      regressionTestInputs/ztnbSimpleTest2_response.dat
+        regressionTestInputs/ztnbSimpleTest2_response.dat
     </command>
-    <expected> regressionTestOutputs/ztnbSimpleTest_correctedPvals_output.expected </expected>
+    <expected>
+      regressionTestOutputs/ztnbSimpleTest_correctedPvals_output.expected
+    </expected>
   </test>
-  
+
   <test>
     <name> Simple ZTNB Test 2 </name>
-    <command> 
-      ../../bin/Piranha -a 1 -f -d ZeroTruncatedNegativeBinomial 
-      regressionTestInputs/ztnbSimpleTest_response.dat 
-    </command> 
-    <expected> regressionTestOutputs/ztnbSimpleTest_output1.expected </expected>
+    <command>
+      ../../bin/Piranha -a 1 -f -d ZeroTruncatedNegativeBinomial
+        regressionTestInputs/ztnbSimpleTest_response.dat
+    </command>
+    <expected>
+      regressionTestOutputs/ztnbSimpleTest_output1.expected
+    </expected>
   </test>
 
   <test>
     <name> Simple ZTNB Test 3 </name>
     <command>
-		      ../../bin/Piranha -u 0 -c -a 1 -p 1 -x 
-	        regressionTestInputs/ztnbSimpleTest2_response.dat
+      ../../bin/Piranha -u 0 -c -a 1 -p 1 -x
+        regressionTestInputs/ztnbSimpleTest2_response.dat
     </command>
-    <expected> regressionTestOutputs/ztnbSimpleTest2_output.expected </expected>
+    <expected>
+      regressionTestOutputs/ztnbSimpleTest2_output.expected
+    </expected>
   </test>
 
   <test>
     <name> Simple NB Test </name>
-      <command> 
-        ../../bin/Piranha -a 1 -f -d NegativeBinomial 
-        regressionTestInputs/nbSimpleTest_response.dat 
+      <command>
+        ../../bin/Piranha -a 1 -f -d NegativeBinomial
+        regressionTestInputs/nbSimpleTest_response.dat
       </command>
     <expected> regressionTestOutputs/nbSimpleTest_output.expected </expected>
   </test>
 
   <test>
     <name> Simple Poisson Test 1 </name>
-    <command> 
+    <command>
       ../../bin/Piranha -c -a 1 -d Poisson -p 1
-      regressionTestInputs/PoissonSimpleTest_response.dat 
+      regressionTestInputs/PoissonSimpleTest_response.dat
     </command>
-    <expected> 
+    <expected>
       regressionTestOutputs/PoissonSimpleTest_output.expected.stdout
     </expected>
   </test>
-  
+
   <test>
     <name> Simple Poisson Test 2 </name>
-    <command> 
-      ../../bin/Piranha -d Poisson -f 
-      regressionTestInputs/PoissonSimpleTest_response.dat 
+    <command>
+      ../../bin/Piranha -d Poisson -f
+      regressionTestInputs/PoissonSimpleTest_response.dat
     </command>
-    <expected> 
-      regressionTestOutputs/PoissonSimpleTest_output_1.expected.stdout 
+    <expected>
+      regressionTestOutputs/PoissonSimpleTest_output_1.expected.stdout
     </expected>
   </test>
-  
+
   <test>
     <name> Simple ZTP Test </name>
     <command>
       ../../bin/Piranha -f -d ZeroTruncatedPoisson -p 1
-      regressionTestInputs/ZeroTruncatedPoissonSimpleTest_response.dat 
+      regressionTestInputs/ZeroTruncatedPoissonSimpleTest_response.dat
     </command>
     <expected>
       regressionTestOutputs/ZeroTruncatedPoissonSimpleTest_output.expected
     </expected>
   </test>
-  
+
   <test>
     <name> Simple ZTP Test </name>
     <command>
-      ../../bin/Piranha -c -a 1 -p 1 -d ZeroTruncatedPoisson 
-      regressionTestInputs/ZeroTruncatedPoissonSimpleTest_response.dat 
+      ../../bin/Piranha -c -a 1 -p 1 -d ZeroTruncatedPoisson
+      regressionTestInputs/ZeroTruncatedPoissonSimpleTest_response.dat
     </command>
     <expected>
       regressionTestOutputs/ZeroTruncatedPoissonSimpleTest_output1.expected
@@ -169,90 +220,90 @@
 
   <test>
     <name> Poisson Regression Test </name>
-    <command> 
-      ../../bin/Piranha -s -n -f -d PoissonRegression 
-      regressionTestInputs/PoissonRegressionTest_response.dat 
-      regressionTestInputs/PoissonRegressionTest_covariate1.dat 
-      regressionTestInputs/PoissonRegressionTest_covariate2.dat 
-      regressionTestInputs/PoissonRegressionTest_covariate3.dat 
-      regressionTestInputs/PoissonRegressionTest_covariate4.dat 
+    <command>
+      ../../bin/Piranha -s -n -f -d PoissonRegression
+      regressionTestInputs/PoissonRegressionTest_response.dat
+      regressionTestInputs/PoissonRegressionTest_covariate1.dat
+      regressionTestInputs/PoissonRegressionTest_covariate2.dat
+      regressionTestInputs/PoissonRegressionTest_covariate3.dat
+      regressionTestInputs/PoissonRegressionTest_covariate4.dat
     </command>
-    <expected> 
-      regressionTestOutputs/PoissonRegressionTest_output.expected 
+    <expected>
+      regressionTestOutputs/PoissonRegressionTest_output.expected
     </expected>
   </test>
-  
-  <!--Poisson again, same input but this time give us the full 
-       output instead of just the model --> 
+
+  <!--Poisson again, same input but this time give us the full
+       output instead of just the model -->
   <test>
     <name> Poisson Regression Test 2 </name>
-    <command> 
-      ../../bin/Piranha -r -a 1 -c -p 1 -s -n -d PoissonRegression 
-      regressionTestInputs/PoissonRegressionTest_response.dat 
-      regressionTestInputs/PoissonRegressionTest_covariate1.dat 
-      regressionTestInputs/PoissonRegressionTest_covariate2.dat 
-      regressionTestInputs/PoissonRegressionTest_covariate3.dat 
-      regressionTestInputs/PoissonRegressionTest_covariate4.dat 
+    <command>
+      ../../bin/Piranha -r -a 1 -c -p 1 -s -n -d PoissonRegression
+      regressionTestInputs/PoissonRegressionTest_response.dat
+      regressionTestInputs/PoissonRegressionTest_covariate1.dat
+      regressionTestInputs/PoissonRegressionTest_covariate2.dat
+      regressionTestInputs/PoissonRegressionTest_covariate3.dat
+      regressionTestInputs/PoissonRegressionTest_covariate4.dat
     </command>
-    <expected> 
-      regressionTestOutputs/PoissonRegressionTest2_output.expected 
+    <expected>
+      regressionTestOutputs/PoissonRegressionTest2_output.expected
     </expected>
   </test>
 
   <test>
-  	<name> NB Regression Test </name>
-    <command> 
-      ../../bin/Piranha -a 1 -s -n -f -d NegativeBinomialRegression 
-      regressionTestInputs/NBRegressionTest_response.dat 
-      regressionTestInputs/NBRegressionTest_covariate1.dat 
-      regressionTestInputs/NBRegressionTest_covariate2.dat 
-      regressionTestInputs/NBRegressionTest_covariate3.dat 
-      regressionTestInputs/NBRegressionTest_covariate4.dat 
+   <name> NB Regression Test </name>
+    <command>
+      ../../bin/Piranha -a 1 -s -n -f -d NegativeBinomialRegression
+      regressionTestInputs/NBRegressionTest_response.dat
+      regressionTestInputs/NBRegressionTest_covariate1.dat
+      regressionTestInputs/NBRegressionTest_covariate2.dat
+      regressionTestInputs/NBRegressionTest_covariate3.dat
+      regressionTestInputs/NBRegressionTest_covariate4.dat
     </command>
-    <expected> 
-      regressionTestOutputs/NBRegressionTest_output.expected 
+    <expected>
+      regressionTestOutputs/NBRegressionTest_output.expected
     </expected>
   </test>
 
   <test>
     <name> ZTNB Regression Test </name>
-    <command> 
-  		../../bin/Piranha -a 1 -s -n -f -d ZeroTruncatedNegativeBinomialRegression 
-  		regressionTestInputs/ZTNBRegressionTest_response.dat 
-  		regressionTestInputs/ZTNBRegressionTest_covariate1.dat 
-  		regressionTestInputs/ZTNBRegressionTest_covariate2.dat 
-  		regressionTestInputs/ZTNBRegressionTest_covariate3.dat 
-  		regressionTestInputs/ZTNBRegressionTest_covariate4.dat 
+    <command>
+    ../../bin/Piranha -a 1 -s -n -f -d ZeroTruncatedNegativeBinomialRegression
+    regressionTestInputs/ZTNBRegressionTest_response.dat
+    regressionTestInputs/ZTNBRegressionTest_covariate1.dat
+    regressionTestInputs/ZTNBRegressionTest_covariate2.dat
+    regressionTestInputs/ZTNBRegressionTest_covariate3.dat
+    regressionTestInputs/ZTNBRegressionTest_covariate4.dat
     </command>
-    <expected> 
-      regressionTestOutputs/ZTNBRegressionTest_output.expected 
+    <expected>
+      regressionTestOutputs/ZTNBRegressionTest_output.expected
     </expected>
   </test>
 
   <test>
     <name> ZTP Regression Test </name>
-    <command> 
-  	  ../../bin/Piranha -s -n -f -d ZeroTruncatedPoissonRegression 
-  	  regressionTestInputs/ZTPRegressionTest_response.dat 
-  	  regressionTestInputs/ZTPRegressionTest_covariate1.dat 
-  	  regressionTestInputs/ZTPRegressionTest_covariate2.dat 
+    <command>
+     ../../bin/Piranha -s -n -f -d ZeroTruncatedPoissonRegression
+     regressionTestInputs/ZTPRegressionTest_response.dat
+     regressionTestInputs/ZTPRegressionTest_covariate1.dat
+     regressionTestInputs/ZTPRegressionTest_covariate2.dat
     </command>
-    <expected> 
-      regressionTestOutputs/ZTPRegressionTest_output.expected 
+    <expected>
+      regressionTestOutputs/ZTPRegressionTest_output.expected
     </expected>
   </test>
 
   <test>
-  	<name>NB Regression Test 2</name>
-  	<command>
-	  ../../bin/Piranha -r -a 1 -c -p 1 -s -d NegativeBinomialRegression
-	  regressionTestInputs/NBRegressionTest_response.dat
+   <name>NB Regression Test 2</name>
+   <command>
+   ../../bin/Piranha -r -a 1 -c -p 1 -s -d NegativeBinomialRegression
+   regressionTestInputs/NBRegressionTest_response.dat
       regressionTestInputs/NBRegressionTest_covariate1.dat
       regressionTestInputs/NBRegressionTest_covariate2.dat
       regressionTestInputs/NBRegressionTest_covariate3.dat
       regressionTestInputs/NBRegressionTest_covariate4.dat
-	</command>
-  	<expected>regressionTestOutputs/NBRegressionTest2_output.expected</expected>
+ </command>
+   <expected>regressionTestOutputs/NBRegressionTest2_output.expected</expected>
   </test>
 
   <test>
@@ -284,50 +335,50 @@
   </test>
 
   <test>
-    <name> ZTNB Regression Test 3 </name> 
-	<command> 
-	  ../../bin/Piranha -r -a 1 -c -p 1 -x -d ZeroTruncatedNegativeBinomialRegression 
-	  regressionTestInputs/ZTNBRegressionTest3_response.dat
-	  regressionTestInputs/ZTNBRegressionTest3_covariate1.dat
-	</command>
+    <name> ZTNB Regression Test 3 </name>
+ <command>
+   ../../bin/Piranha -r -a 1 -c -p 1 -x -d ZeroTruncatedNegativeBinomialRegression
+   regressionTestInputs/ZTNBRegressionTest3_response.dat
+   regressionTestInputs/ZTNBRegressionTest3_covariate1.dat
+ </command>
     <expected>
-	  regressionTestOutputs/ZTNBRegressionTest3_output.expected
-	</expected>
+   regressionTestOutputs/ZTNBRegressionTest3_output.expected
+ </expected>
   </test>
 
-  <!-- 
-    This test uses some data from the hTra2 RIP-Seq dataset; 
-	it tests for correct bounding of mu and beta to avoid
-	overflow when the linear predictor becomes too large
+  <!--
+    This test uses some data from the hTra2 RIP-Seq dataset;
+ it tests for correct bounding of mu and beta to avoid
+ overflow when the linear predictor becomes too large
   -->
   <test>
     <name> ZTNB Regression Test 4 </name>
     <command>
       ../../bin/Piranha -u 0 -r -c -p 1 -a 1
-	  regressionTestInputs/ZTNBRegressionTest4_response.dat
+   regressionTestInputs/ZTNBRegressionTest4_response.dat
       regressionTestInputs/ZTNBRegressionTest4_covariate1.dat
-	</command>
-	<expected>
-	  regressionTestOutputs/ZTNBRegressionTest4_output.expected
-	</expected>
+ </command>
+ <expected>
+   regressionTestOutputs/ZTNBRegressionTest4_output.expected
+ </expected>
   </test>
   <test>
     <name> Simple ZTNB Test 5, preserving the strand </name>
     <command>
-		      ../../bin/Piranha -u 0 -c -a 1 -p 1 
-	        regressionTestInputs/ztnbSimpleTest5_response.dat
+        ../../bin/Piranha -u 0 -c -a 1 -p 1
+         regressionTestInputs/ztnbSimpleTest5_response.dat
     </command>
     <expected> regressionTestOutputs/ztnbSimpleTest5_output.expected </expected>
   </test>
   <test>
     <name> ZTNB Regression Test 5, preserving the strand </name>
-	<command> 
-	  ../../bin/Piranha -r -a 1 -c -p 1 -d ZeroTruncatedNegativeBinomialRegression 
-	  regressionTestInputs/ZTNBRegressionTest5_response.dat
-	  regressionTestInputs/ZTNBRegressionTest5_covariate1.dat
-	</command>
+ <command>
+   ../../bin/Piranha -r -a 1 -c -p 1 -d ZeroTruncatedNegativeBinomialRegression
+   regressionTestInputs/ZTNBRegressionTest5_response.dat
+   regressionTestInputs/ZTNBRegressionTest5_covariate1.dat
+ </command>
     <expected>
-	  regressionTestOutputs/ZTNBRegressionTest5_output.expected
-	</expected>
+   regressionTestOutputs/ZTNBRegressionTest5_output.expected
+ </expected>
   </test>
 </regressionTests>
