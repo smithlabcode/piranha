@@ -645,20 +645,16 @@ splitResponsesAndCovariates(vector<double> &allResponses,
  * \param ostrm         TODO
  */
 static void
-FindPeaksSingleComponentRegression(const bool VERBOSE, const bool FITONLY,
-                                   const bool NO_PVAL_CORRECT,
-                                   const bool SUPRESS_COVARS,
-                                   vector<GenomicRegion> &sites,
-                                   vector<GenomicRegion> &fgSites,
-                                   vector<double> &responses,
-                                   vector<double> &fgResponses,
-                                   vector< vector<double> > &covariates,
-                                   vector< vector<double> > &fgCovariates,
-                                   const FittingMethod ftmthd,
-                                   const string &distType,
-                                   const string& modelfn, const double pThresh,
-                                   const size_t clusterDist,
-                                   ostream& ostrm) {
+FindPeaksRegression(const bool VERBOSE, const bool FITONLY,
+                    const bool NO_PVAL_CORRECT, const bool SUPRESS_COVARS,
+                    vector<GenomicRegion> &sites,
+                    vector<GenomicRegion> &fgSites, vector<double> &responses,
+                    vector<double> &fgResponses,
+                    vector< vector<double> > &covariates,
+                    vector< vector<double> > &fgCovariates,
+                    const FittingMethod ftmthd, const string &distType,
+                    const string& modelfn, const double pThresh,
+                    const size_t clusterDist, ostream& ostrm) {
   // there must be at least one covariate...
   if (covariates.size() < 1) {
     stringstream ss;
@@ -845,16 +841,13 @@ FindPeaksSingleComponentRegression(const bool VERBOSE, const bool FITONLY,
  * \param ostrm       write regions to this output stream
  */
 static void
-FindPeaksSingleComponentSimple(const bool VERBOSE, const bool FITONLY,
-                               const bool NO_PVAL_CORRECT,
-                               const string &distType, const string &modelfn,
-                               vector<GenomicRegion> &sites,
-                               vector<GenomicRegion> &fgSites,
-                               const vector<double> &responses,
-                               const vector<double> &fgResponses,
-                               const double pThresh,
-                               const size_t clusterDist,
-                               ostream& ostrm) {
+FindPeaksSimple(const bool VERBOSE, const bool FITONLY,
+                const bool NO_PVAL_CORRECT, const string &distType,
+                const string &modelfn, vector<GenomicRegion> &sites,
+                vector<GenomicRegion> &fgSites,
+                const vector<double> &responses,
+                const vector<double> &fgResponses, const double pThresh,
+                const size_t clusterDist, ostream& ostrm) {
   if (VERBOSE)
     cerr << "Simple 1-component fitting using " << distType << endl;
 
@@ -1166,10 +1159,9 @@ main(int argc, const char* argv[]) {
       vector<double> fgResponses;
       splitResponses(responses, sites, fgResponses, fgSites, bgThresh,
                             VERBOSE);
-      FindPeaksSingleComponentSimple(VERBOSE, FITONLY, NO_PVAL_CORRECT,
-                            distType,
-                            modelfn, sites, fgSites, responses, fgResponses,
-                            pthresh, cluster_dist, ostrm);
+      FindPeaksSimple(VERBOSE, FITONLY, NO_PVAL_CORRECT, distType, modelfn,
+                      sites, fgSites, responses, fgResponses, pthresh,
+                      cluster_dist, ostrm);
     } else {
       // more than one input file given, must be regression
       if (distType == "DEFAULT")
@@ -1179,11 +1171,10 @@ main(int argc, const char* argv[]) {
       vector< vector<double> > fgCovariates;
       splitResponsesAndCovariates(responses, covariates, sites, fgResponses,
                             fgCovariates, fgSites, bgThresh, VERBOSE);
-      FindPeaksSingleComponentRegression(VERBOSE, FITONLY, NO_PVAL_CORRECT,
-                            SUPRESS_COVARS, sites,
-                            fgSites, responses, fgResponses, covariates,
-                            fgCovariates, FittingMethod(fittingMethodStr),
-                            distType, modelfn, pthresh, cluster_dist, ostrm);
+      FindPeaksRegression(VERBOSE, FITONLY, NO_PVAL_CORRECT, SUPRESS_COVARS,
+                          sites, fgSites, responses, fgResponses, covariates,
+                          fgCovariates, FittingMethod(fittingMethodStr),
+                          distType, modelfn, pthresh, cluster_dist, ostrm);
     }
   } catch (const SMITHLABException &e) {
     cerr << "ERROR:\t" << e.what() << endl;
