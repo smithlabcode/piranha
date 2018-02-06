@@ -41,3 +41,4 @@ src/test/TestReadBinner
 src/test/TestUtility
 src/test/TestZTNB
 src/test/TestZTP
+src/test/testlog.txt
