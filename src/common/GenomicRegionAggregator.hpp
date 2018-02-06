@@ -139,15 +139,16 @@ public :
     gIter prev_region;
     dIter clusterStart_pval = p_start, clusterEnd_pval = p_start;
     std::vector<dIter> clusterStart_covars, clusterEnd_covars;
-    for (size_t i=0; i<c_starts.size(); ++i) {
+    for (size_t i = 0; i < c_starts.size(); ++i) {
       clusterStart_covars.push_back(c_starts[i]);
       clusterEnd_covars.push_back(c_starts[i]);
     }
 
-    //gIter it_region = r_start;
+    // gIter it_region = r_start;
     dIter it_pval = p_start;
     std::vector<dIter> it_covars;
-    for (size_t i=0; i<c_starts.size(); ++i) it_covars.push_back(c_starts[i]);
+    for (size_t i = 0; i < c_starts.size(); ++i)
+      it_covars.push_back(c_starts[i]);
 
     bool first = true;
     for (gIter it_region = r_start; it_region != r_end; ++it_region) {
@@ -166,13 +167,12 @@ public :
       // non-sig bins. they will still be 'in' the cluster though, so 'f'
       // can do whatever it wants with them.
       if (*it_pval <= alpha) {
-        //std::cerr << "looking at " << *it_region << *it_pval << std::endl;
         if (first) {
           f_anti(clusterEnd_region, it_region,
                  clusterEnd_pval,   it_pval,
                  clusterEnd_covars, it_covars);
 
-          //std::cerr << "first anti cluster " << *it_region << std::endl;
+          // std::cerr << "first anti cluster " << *it_region << std::endl;
           clusterChrom = it_region->get_chrom();
           clusterStartCoord = it_region->get_start();
           clusterEndCoord = it_region->get_end();
@@ -180,18 +180,16 @@ public :
           clusterEnd_region = it_region + 1;
           clusterStart_pval = it_pval;
           clusterEnd_pval = it_pval + 1;
-          for (size_t i=0; i<c_starts.size(); ++i) {
+          for (size_t i = 0; i < c_starts.size(); ++i) {
             clusterStart_covars[i] = it_covars[i];
             clusterEnd_covars[i] = it_covars[i] + 1;
           }
           first = false;
-          //std::cerr << "done first anti " << *it_region << std::endl;
         } else {
           if ((clusterChrom != it_region->get_chrom()) ||
               (clusterEndCoord + this->clusterDistance <= it_region->get_start())) {
-            // we end the current cluster if this region is too far away from it
-            // including if it's on a different chromosome
-            //std::cerr << "first cluster " << *it_region << std::endl;
+            // we end the current cluster if this region is too far away from
+            // it including if it's on a different chromosome
             f(clusterStart_region, clusterEnd_region,
               clusterStart_pval, clusterEnd_pval,
               clusterStart_covars, clusterEnd_covars);
@@ -202,18 +200,19 @@ public :
                 gIter tmp_region = clusterEnd_region;
                 dIter tmp_pval = clusterEnd_pval;
                 std::vector<dIter> tmp_covars;
-                for (size_t i=0; i<clusterEnd_covars.size(); ++i)
+                for (size_t i = 0; i < clusterEnd_covars.size(); ++i)
                   tmp_covars.push_back(clusterEnd_covars[i]);
-                while(tmp_region != it_region) {
+                while (tmp_region != it_region) {
                   std::vector<dIter> tmp_covars_p1;
-                  for (size_t i=0; i<tmp_covars.size(); ++i)
+                  for (size_t i = 0; i < tmp_covars.size(); ++i)
                     tmp_covars_p1.push_back(tmp_covars[i] + 1);
                   f_anti(tmp_region, tmp_region + 1,
                          tmp_pval,   tmp_pval + 1,
                          tmp_covars, tmp_covars_p1);
                   ++tmp_region;
                   ++tmp_pval;
-                  for (size_t i=0; i<tmp_covars.size(); ++i) ++tmp_covars[i];
+                  for (size_t i = 0; i < tmp_covars.size(); ++i)
+                    ++tmp_covars[i];
                 }
               } else {
                 f_anti(clusterEnd_region, it_region,
@@ -229,7 +228,7 @@ public :
             clusterEnd_region = it_region + 1;
             clusterStart_pval = it_pval;
             clusterEnd_pval = it_pval + 1;
-            for (size_t i=0; i<c_starts.size(); ++i) {
+            for (size_t i = 0; i < c_starts.size(); ++i) {
               clusterStart_covars[i] = it_covars[i];
               clusterEnd_covars[i] = it_covars[i] + 1;
             }
@@ -242,21 +241,27 @@ public :
               clusterStartCoord = it_region->get_start();
             clusterEnd_region = it_region + 1;
             clusterEnd_pval = it_pval + 1;
-            for (size_t i=0; i<c_starts.size(); ++i) {
+            for (size_t i = 0; i < c_starts.size(); ++i) {
               clusterEnd_covars[i] = it_covars[i] + 1;
             }
           }
         }
       }
 
+      // advance pointers for covariates and p-values
       ++it_pval;
-      for (size_t i=0; i<c_starts.size(); ++i) ++(it_covars[i]);
+      for (size_t i = 0; i < c_starts.size(); ++i)
+        ++(it_covars[i]);
     }
-    // don't forget the last cluster
-    //std::cerr << "printing last cluster" << std::endl;
-    f(clusterStart_region, clusterEnd_region,
-      clusterStart_pval, clusterEnd_pval,
-      clusterStart_covars, clusterEnd_covars);
+    // don't forget the last cluster; if first == true, we didn't find any sig
+    // loci, so forget the 'last' cluster, it's empty.
+    if (!first) {
+      f(clusterStart_region, clusterEnd_region,
+        clusterStart_pval, clusterEnd_pval,
+        clusterStart_covars, clusterEnd_covars);
+    } else {
+      std::cerr << "[WARNING, FOUND NO SIGNIFICANT LOCI]" << std::endl;
+    }
   }
 
   /**
@@ -362,14 +367,6 @@ public:
       if (i != cvars.size()-1) this->outputStream << "\t";
     }
     this->outputStream << std::endl;
-
-    /*std::cerr << tmp << "\t" << pval;
-    if (cvars.size() != 0) std::cerr << "\t";
-    for (size_t i=0; i<cvars.size(); ++i) {
-      std::cerr << cvars[i];
-      if (i != cvars.size()-1) std::cerr << "\t";
-    }
-    std::cerr << std::endl;*/
   }
 private:
   std::ostream &outputStream;
