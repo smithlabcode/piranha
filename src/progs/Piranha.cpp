@@ -92,6 +92,10 @@ enum aggregationType {NO_AGGREGATION, SUMMITS_AGGREGATION,
 const size_t ALREADY_BINNED = 0;
 
 
+/******************************************************************************
+**                             HELPER FUNCTIONS                              **
+******************************************************************************/
+
 /**
  * \brief functor for sorting genomic regions
  */
@@ -165,6 +169,11 @@ guessFileType(const string &filename, const bool verbose = false) {
   if (ext == "BAM") return BAM;
   return BED;
 }
+
+
+/******************************************************************************
+**                              IO FUNCTIONS                                 **
+******************************************************************************/
 
 /**
  * \brief load a BAM file into a vector of genomic regions
@@ -424,19 +433,63 @@ loadCovariates(const vector<string> &filenames,
           stringstream ss;
           ss << "can't take log of covariates, some values at zero";
           throw SMITHLABException(ss.str());
-        }
-        // TODO fix magic number
-        else if (covariates[i][j] == 1) covariates[i][j] = 0.00001;
-        else {
-          covariates[i][j] = log(covariates[i][j]);
-          // avoid having anything at exactly 0 or 1
-          if (covariates[i][j] == 0) covariates[i][j] = 0.01;
-          if (covariates[i][j] == 1) covariates[i][j] = 0.99;
+        } else {
+          if (covariates[i][j] == 1) {
+            // TODO(pjuren) fix magic number
+            covariates[i][j] = 0.00001;
+          } else {
+            covariates[i][j] = log(covariates[i][j]);
+            // avoid having anything at exactly 0 or 1
+            if (covariates[i][j] == 0) covariates[i][j] = 0.01;
+            if (covariates[i][j] == 1) covariates[i][j] = 0.99;
+          }
         }
       }
     }
   }
 }
+
+
+/******************************************************************************
+**       P-VALUE COMPUTATION AND MULTIPLE HYPOTHESIS TESTING CORRECTION      **
+******************************************************************************/
+
+/**
+ * \brief compute p-values for foreground and background bins using a simple
+ *        (non-GLM) distirbution; optionally adjust for multiple hypothesis
+ *        testing.
+ * \param distro           pointer to distribution object to use to compute
+ *                         p-values.
+ * \param responses        read-counts in background bins.
+ * \param fgResponses      read-counts in foreground bins.
+ * \param fg_pvals         a vector to place the resultant foreground p-values
+ *                         into. will be cleared.
+ * \param bg_pvals         a vector to place the resultant background p-values
+ *                         into. Will be cleared.
+ * \param NO_PVAL_CORRECT  if true, don't perform any correction to multiple
+ *                         hypothesis testing. Otherwise, perform BH correction.
+ */
+static void
+computePValSimple(const Distribution *distro, const vector<double> &responses,
+                  const vector<double> &fgResponses, vector<double> &fg_pvals,
+                  vector<double> &bg_pvals, const bool NO_PVAL_CORRECT) {
+  vector<double> all_pvals;
+  for (size_t i = 0; i < responses.size(); i++)
+    all_pvals.push_back(distro->pvalue(responses[i]));
+  for (size_t i = 0; i < fgResponses.size(); i++)
+    all_pvals.push_back(distro->pvalue(fgResponses[i]));
+  if (!NO_PVAL_CORRECT)
+    FDR::correctP(all_pvals);
+  for (size_t i = 0; i < responses.size(); i++)
+    bg_pvals.push_back(all_pvals[i]);
+  for (size_t i = 0; i < fgResponses.size(); i++)
+    fg_pvals.push_back(all_pvals[bg_pvals.size() + i]);
+}
+
+
+/******************************************************************************
+**           MANUAL SPLIT OF DATA INTO FOREGROUND/BACKGROUND GROUPS          **
+******************************************************************************/
 
 /**
  * \brief TODO
@@ -722,8 +775,6 @@ FindPeaksSingleComponentRegression(const bool VERBOSE, const bool FITONLY,
       tmp_pos.clear();
       tmp_neg.clear();
     }
-    // TODO(pjuren) proper runtime polymorphims here...
-    cerr << "suppress covars is: " << SUPRESS_COVARS << endl;
 
     vector<double> pvals_pos, pvals_neg;
     vector<GenomicRegion> sites_pos, sites_neg;
@@ -757,11 +808,13 @@ FindPeaksSingleComponentRegression(const bool VERBOSE, const bool FITONLY,
           sites_neg.end(), pvals_neg.begin(), pvals_neg.end(),
           pThresh, ClusterLimitsPrinter(ostrm));
     } else {
-      if (sites_pos.size() > 0 && pvals_pos.size() > 0 && c_starts_pos.size() > 0 && c_ends_pos.size()>0)
+      if (sites_pos.size() > 0 && pvals_pos.size() > 0 &&
+          c_starts_pos.size() > 0 && c_ends_pos.size() > 0)
         GenomicRegionAggregator(clusterDist).aggregate(sites_pos.begin(),
           sites_pos.end(), pvals_pos.begin(), pvals_pos.end(),
           c_starts_pos, c_ends_pos, pThresh, ClusterLimitsPrinter(ostrm));
-      if (sites_neg.size() > 0 && pvals_neg.size() > 0 && c_starts_neg.size() > 0 && c_ends_neg.size()>0)
+      if (sites_neg.size() > 0 && pvals_neg.size() > 0 &&
+          c_starts_neg.size() > 0 && c_ends_neg.size() > 0)
         GenomicRegionAggregator(clusterDist).aggregate(sites_neg.begin(),
           sites_neg.end(), pvals_neg.begin(), pvals_neg.end(),
           c_starts_neg, c_ends_neg, pThresh, ClusterLimitsPrinter(ostrm));
@@ -827,14 +880,8 @@ FindPeaksSingleComponentSimple(const bool VERBOSE, const bool FITONLY,
     // we have to pre-compute all of the p-values so we can adjust them
     // for multiple hypothesis testing
     vector<double> fg_pvals, bg_pvals;
-    for (size_t i = 0; i < responses.size(); i++)
-      bg_pvals.push_back(distro->pvalue(responses[i]));
-    for (size_t i = 0; i < fgResponses.size(); i++)
-      fg_pvals.push_back(distro->pvalue(fgResponses[i]));
-    if (!NO_PVAL_CORRECT) {
-      FDR::correctP(fg_pvals);
-      FDR::correctP(bg_pvals);
-    }
+    computePValSimple(distro, responses, fgResponses, fg_pvals, bg_pvals,
+                      NO_PVAL_CORRECT);
 
     // put the response values back into the sites
     for (size_t i = 0; i < responses.size(); i++)
