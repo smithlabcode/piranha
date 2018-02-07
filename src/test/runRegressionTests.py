@@ -147,8 +147,8 @@ def runTest(test, colWidth, logfile=None):
                      TextColours.ENDC)
     sys.stdout.flush()
     args = shlex.split(test.command)
-    subprocess.Popen(args, stdout=tmpf, stderr=tmpf2)
-    os.wait()
+    p = subprocess.Popen(args, stdout=tmpf, stderr=tmpf2)
+    p.wait()
 
     actualOutput = open(tmpnm).read()
     expectedOutput = open(test.expected).read()
